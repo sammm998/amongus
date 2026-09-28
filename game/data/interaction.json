@@ -1,0 +1,14 @@
+{
+  "range_m": 2.6,
+  "report_hold_seconds": 1.0,
+  "inspect_hold_seconds": 2.0,
+  "emergency_range_m": 3.0,
+  "revive_health": 50.0,
+  "revive_shield": 0.0,
+  "revive_light_ammo": 24,
+  "spawn_protection_seconds": 5.0,
+  "revive_gunfire_exclusion_m": 60.0,
+  "gunfire_memory_seconds": 20.0,
+  "start_light_ammo": 24,
+  "start_weapon": "pistol"
+}

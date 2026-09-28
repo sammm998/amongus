@@ -6,6 +6,13 @@
     "network",
     "input_bindings",
     "debug",
-    "render_presets"
+    "render_presets",
+    "match_flow",
+    "movement",
+    "interaction",
+    "sabotages",
+    "tasks",
+    "bots",
+    "modes"
   ]
 }

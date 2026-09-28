@@ -1,0 +1,18 @@
+{
+  "team_cooldown_seconds": 30.0,
+  "sabotages": {
+    "blackout": {
+      "display_name": "Blackout", "alert": "BLACKOUT", "critical": false, "targets": "district",
+      "duration_seconds": 60.0, "cooldown_seconds": 90.0, "repair": "breaker", "repair_hold_seconds": 3.0
+    },
+    "camera_jam": {
+      "display_name": "Camera Jam", "alert": "CAMERAS OFFLINE", "critical": false, "targets": "district",
+      "duration_seconds": 45.0, "cooldown_seconds": 90.0, "repair": "security_reset", "repair_hold_seconds": 3.0
+    },
+    "power_failure": {
+      "display_name": "Power Failure", "alert": "POWER FAILURE", "critical": true, "targets": "none",
+      "duration_seconds": 90.0, "cooldown_seconds": 240.0, "repair": "generators", "repair_hold_seconds": 5.0,
+      "generators_required": 2
+    }
+  }
+}

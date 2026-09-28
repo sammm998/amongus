@@ -1,0 +1,25 @@
+{
+  "cooperative_weight_multiplier": 2.0,
+  "hold_tolerance_seconds": 0.35,
+  "pool": {
+    "repair_generator":       { "display_name": "Repair Generator",        "kind": "hold",       "weight": 1.0, "hold_seconds": 4.0, "stations": ["cc_power_1", "cc_power_2", "harbor_generator"] },
+    "restart_server":         { "display_name": "Restart Server",          "kind": "hold",       "weight": 1.0, "hold_seconds": 3.5, "stations": ["cc_server", "med_records"] },
+    "restore_surveillance":   { "display_name": "Restore Surveillance",    "kind": "hold",       "weight": 1.0, "hold_seconds": 3.0, "stations": ["cc_security", "harbor_office"] },
+    "calibrate_radar":        { "display_name": "Calibrate Radar",         "kind": "hold",       "weight": 1.0, "hold_seconds": 4.5, "stations": ["cc_roof_radar", "harbor_crane"] },
+    "inspect_power_relay":    { "display_name": "Inspect Power Relay",     "kind": "travel",     "weight": 1.0, "stations": ["relay_beach", "relay_road", "relay_harbor"] },
+    "inspect_crash_site":     { "display_name": "Inspect Crash Site",      "kind": "travel",     "weight": 1.0, "stations": ["crash_beach"] },
+    "activate_beacon":        { "display_name": "Activate Emergency Beacon","kind": "travel",    "weight": 1.0, "stations": ["beacon_point", "beacon_harbor"] },
+    "deliver_medical":        { "display_name": "Deliver Medical Supplies","kind": "multi_step", "weight": 1.5, "steps": [
+        { "stations": ["harbor_cargo"], "hold_seconds": 1.5, "label": "Collect supplies" },
+        { "stations": ["med_pharmacy"], "hold_seconds": 2.0, "label": "Stock the pharmacy" } ] },
+    "reboot_comms":           { "display_name": "Reboot Communications",   "kind": "multi_step", "weight": 1.5, "steps": [
+        { "stations": ["cc_comms"], "hold_seconds": 2.0, "label": "Shut down the comms array" },
+        { "stations": ["relay_road"], "hold_seconds": 1.5, "label": "Reset the roadside relay" },
+        { "stations": ["cc_comms"], "hold_seconds": 2.0, "label": "Boot the comms array" } ] },
+    "recover_data_drive":     { "display_name": "Recover Data Drive",      "kind": "multi_step", "weight": 1.5, "steps": [
+        { "stations": ["harbor_office"], "hold_seconds": 2.0, "label": "Pull the drive" },
+        { "stations": ["cc_server"], "hold_seconds": 2.5, "label": "Upload to Central Command" } ] },
+    "collect_intelligence":   { "display_name": "Collect Intelligence",    "kind": "hold",       "weight": 1.0, "hold_seconds": 3.0, "stations": ["med_records", "harbor_office"] },
+    "repair_fuel_pump":       { "display_name": "Repair Fuel Pump",        "kind": "hold",       "weight": 1.0, "hold_seconds": 4.0, "stations": ["harbor_fuel"] }
+  }
+}

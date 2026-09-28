@@ -1,0 +1,11 @@
+{
+  "standard": {},
+  "casual":   { "friendly_fire_multiplier": 0.75, "meeting.discussion_seconds": 60.0, "meeting.revive_tie_revives": true },
+  "chaos":    { "sabotage_cooldown_multiplier": 0.6 },
+  "hardcore": { "friendly_fire_multiplier": 1.25 },
+  "test_fast": {
+    "tasks_per_agent": 3, "bleed_out_seconds": 20.0, "match_time_limit_seconds": 240.0,
+    "meeting.incident_review_seconds": 2.0, "meeting.discussion_seconds": 4.0,
+    "meeting.revive_vote_seconds": 4.0, "meeting.suspect_vote_seconds": 3.0
+  }
+}

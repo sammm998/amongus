@@ -1,0 +1,19 @@
+{
+  "names": ["Nova", "Pixel", "Comet", "Juno", "Rook", "Echo", "Mango", "Orbit", "Kiwi", "Blaze", "Sprocket", "Luna", "Taro", "Vega", "Pip", "Zephyr", "Marlo", "Ivy", "Dune", "Quill", "Rivet", "Saffi", "Tux", "Wren"],
+  "sight_range_m": 55.0,
+  "sight_fov_degrees": 160.0,
+  "reaction_seconds": 0.45,
+  "aim_error_degrees": 5.0,
+  "task_linger_seconds": [1.0, 4.0],
+  "traitor_isolation_radius_m": 22.0,
+  "traitor_kill_cooldown_seconds": [25.0, 45.0],
+  "traitor_sabotage_chance_per_second": 0.02,
+  "traitor_finish_chance": 0.5,
+  "report_chance_when_seen": 1.0,
+  "revive_base_chance": 0.65,
+  "suspect_nominate_chance": 0.8,
+  "chase_give_up_seconds": 12.0,
+  "engage_range_m": 28.0,
+  "waypoint_reach_m": 1.6,
+  "stuck_seconds": 2.5
+}

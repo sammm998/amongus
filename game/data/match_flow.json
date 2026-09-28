@@ -1,0 +1,12 @@
+{
+  "countdown_seconds": 5.0,
+  "role_reveal_seconds": 7.0,
+  "resuming_seconds": 3.0,
+  "results_seconds": 20.0,
+  "sabotage_grace_seconds": 60.0,
+  "min_players_to_start": 2,
+  "bot_fill_to": 8,
+  "snapshot_rate": 20,
+  "state_broadcast_seconds": 1.0,
+  "history_seconds": 0.5
+}
