@@ -1,0 +1,33 @@
+{
+  "player_count": 12,
+  "player_count_min": 8,
+  "player_count_max": 24,
+  "traitor_divisor": 6,
+  "traitor_min": 1,
+  "traitor_max": 4,
+  "tasks_per_agent": 6,
+  "tasks_per_agent_min": 3,
+  "tasks_per_agent_max": 10,
+  "bleed_out_seconds": 90.0,
+  "bleed_out_min": 30.0,
+  "bleed_out_max": 180.0,
+  "bleed_out_enabled": true,
+  "match_time_limit_seconds": 1500.0,
+  "meeting": {
+    "incident_review_seconds": 8.0,
+    "discussion_seconds": 45.0,
+    "revive_vote_seconds": 20.0,
+    "suspect_vote_seconds": 15.0,
+    "revive_tie_revives": false,
+    "suspect_threshold": 0.40,
+    "suspect_marker_seconds": 120.0
+  },
+  "emergency_meeting_uses_per_player": 1,
+  "emergency_meeting_global_cooldown": 60.0,
+  "sabotage_cooldown_multiplier": 1.0,
+  "friendly_fire_multiplier": 1.0,
+  "name_display_distance": 30.0,
+  "cameras_enabled": true,
+  "time_of_day": "sunset",
+  "weather": "sunny"
+}

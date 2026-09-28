@@ -1,0 +1,231 @@
+{
+  "deadzone_default": 0.2,
+  "controller_mode_threshold": 0.35,
+  "actions": {
+    "move_forward": {
+      "keys": [
+        "W"
+      ],
+      "joy_axes": [
+        [
+          1,
+          -1.0
+        ]
+      ]
+    },
+    "move_back": {
+      "keys": [
+        "S"
+      ],
+      "joy_axes": [
+        [
+          1,
+          1.0
+        ]
+      ]
+    },
+    "move_left": {
+      "keys": [
+        "A"
+      ],
+      "joy_axes": [
+        [
+          0,
+          -1.0
+        ]
+      ]
+    },
+    "move_right": {
+      "keys": [
+        "D"
+      ],
+      "joy_axes": [
+        [
+          0,
+          1.0
+        ]
+      ]
+    },
+    "look_left": {
+      "joy_axes": [
+        [
+          2,
+          -1.0
+        ]
+      ]
+    },
+    "look_right": {
+      "joy_axes": [
+        [
+          2,
+          1.0
+        ]
+      ]
+    },
+    "look_up": {
+      "joy_axes": [
+        [
+          3,
+          -1.0
+        ]
+      ]
+    },
+    "look_down": {
+      "joy_axes": [
+        [
+          3,
+          1.0
+        ]
+      ]
+    },
+    "fire": {
+      "mouse": [
+        1
+      ],
+      "joy_axes": [
+        [
+          5,
+          1.0
+        ]
+      ]
+    },
+    "aim": {
+      "mouse": [
+        2
+      ],
+      "joy_axes": [
+        [
+          4,
+          1.0
+        ]
+      ]
+    },
+    "jump": {
+      "keys": [
+        "Space"
+      ],
+      "joy_buttons": [
+        0
+      ]
+    },
+    "sprint": {
+      "keys": [
+        "Shift"
+      ],
+      "joy_buttons": [
+        7
+      ]
+    },
+    "crouch": {
+      "keys": [
+        "Ctrl"
+      ],
+      "joy_buttons": [
+        1
+      ]
+    },
+    "reload": {
+      "keys": [
+        "R"
+      ],
+      "joy_buttons": [
+        2
+      ]
+    },
+    "interact": {
+      "keys": [
+        "E"
+      ],
+      "joy_buttons": [
+        2
+      ]
+    },
+    "vehicle": {
+      "keys": [
+        "F"
+      ]
+    },
+    "flashlight": {
+      "keys": [
+        "T"
+      ]
+    },
+    "swap_weapon": {
+      "joy_buttons": [
+        3
+      ]
+    },
+    "slot_1": {
+      "keys": [
+        "1"
+      ],
+      "joy_buttons": [
+        13
+      ]
+    },
+    "slot_2": {
+      "keys": [
+        "2"
+      ],
+      "joy_buttons": [
+        14
+      ]
+    },
+    "slot_3": {
+      "keys": [
+        "3"
+      ],
+      "joy_buttons": [
+        11
+      ]
+    },
+    "slot_4": {
+      "keys": [
+        "4"
+      ],
+      "joy_buttons": [
+        12
+      ]
+    },
+    "slot_5": {
+      "keys": [
+        "5"
+      ]
+    },
+    "scoreboard": {
+      "keys": [
+        "Tab"
+      ],
+      "joy_buttons": [
+        4
+      ]
+    },
+    "map": {
+      "keys": [
+        "M"
+      ],
+      "joy_buttons": [
+        10
+      ]
+    },
+    "chat": {
+      "keys": [
+        "Enter"
+      ]
+    },
+    "menu": {
+      "keys": [
+        "Escape"
+      ],
+      "joy_buttons": [
+        6
+      ]
+    },
+    "debug_console": {
+      "keys": [
+        "QuoteLeft",
+        "F1"
+      ]
+    }
+  }
+}

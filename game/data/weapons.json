@@ -1,0 +1,620 @@
+{
+  "weapons": [
+    {
+      "id": "pistol",
+      "display_name": "Pistol",
+      "family": "sidearm",
+      "body_damage": 15,
+      "pellets": 1,
+      "fire_rate": 3.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 12,
+      "reload_time": 1.4,
+      "reload_per_shell": false,
+      "ammo_type": "light",
+      "rarity_min": "standard",
+      "rarity_max": "advanced",
+      "headshot_allowed": true,
+      "ttk_expected": 2.0,
+      "accuracy": 0.9,
+      "spread": {
+        "hip": 2.0,
+        "ads": 0.6,
+        "moving": 2.8
+      },
+      "falloff": {
+        "start_m": 20,
+        "end_m": 50,
+        "min_multiplier": 0.6
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 1.0,
+      "ads_time": 0.15,
+      "aim_assist_strength": 0.5,
+      "vehicle_damage_multiplier": 0.5,
+      "sound_profile": {
+        "family": "sidearm",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "smg",
+      "display_name": "SMG",
+      "family": "smg",
+      "body_damage": 9,
+      "pellets": 1,
+      "fire_rate": 7.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 30,
+      "reload_time": 2.0,
+      "reload_per_shell": false,
+      "ammo_type": "light",
+      "rarity_min": "standard",
+      "rarity_max": "elite",
+      "headshot_allowed": true,
+      "ttk_expected": 1.6,
+      "accuracy": 0.75,
+      "spread": {
+        "hip": 3.5,
+        "ads": 1.6,
+        "moving": 4.5
+      },
+      "falloff": {
+        "start_m": 12,
+        "end_m": 35,
+        "min_multiplier": 0.5
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.5
+        ],
+        [
+          0.25,
+          0.5
+        ],
+        [
+          -0.3,
+          0.55
+        ],
+        [
+          0.3,
+          0.6
+        ],
+        [
+          -0.25,
+          0.6
+        ]
+      ],
+      "move_speed_multiplier": 0.97,
+      "ads_time": 0.18,
+      "aim_assist_strength": 0.55,
+      "vehicle_damage_multiplier": 0.4,
+      "sound_profile": {
+        "family": "smg",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "assault_rifle",
+      "display_name": "Assault Rifle",
+      "family": "rifle",
+      "body_damage": 12,
+      "pellets": 1,
+      "fire_rate": 5.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 30,
+      "reload_time": 2.3,
+      "reload_per_shell": false,
+      "ammo_type": "medium",
+      "rarity_min": "standard",
+      "rarity_max": "prototype",
+      "headshot_allowed": true,
+      "ttk_expected": 1.6,
+      "accuracy": 0.88,
+      "spread": {
+        "hip": 2.6,
+        "ads": 0.5,
+        "moving": 3.4
+      },
+      "falloff": {
+        "start_m": 30,
+        "end_m": 80,
+        "min_multiplier": 0.65
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.94,
+      "ads_time": 0.25,
+      "aim_assist_strength": 0.45,
+      "vehicle_damage_multiplier": 0.6,
+      "sound_profile": {
+        "family": "rifle",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "burst_rifle",
+      "display_name": "Burst Rifle",
+      "family": "rifle",
+      "body_damage": 11,
+      "pellets": 1,
+      "fire_rate": 1.6667,
+      "burst_count": 3,
+      "burst_interval": 0.08,
+      "spin_up": 0.0,
+      "mag_size": 24,
+      "reload_time": 2.2,
+      "reload_per_shell": false,
+      "ammo_type": "medium",
+      "rarity_min": "advanced",
+      "rarity_max": "elite",
+      "headshot_allowed": true,
+      "ttk_expected": 1.8,
+      "accuracy": 0.9,
+      "spread": {
+        "hip": 2.4,
+        "ads": 0.45,
+        "moving": 3.2
+      },
+      "falloff": {
+        "start_m": 30,
+        "end_m": 80,
+        "min_multiplier": 0.65
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.94,
+      "ads_time": 0.25,
+      "aim_assist_strength": 0.45,
+      "vehicle_damage_multiplier": 0.6,
+      "sound_profile": {
+        "family": "rifle",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "shotgun",
+      "display_name": "Shotgun",
+      "family": "shotgun",
+      "body_damage": 8,
+      "pellets": 8,
+      "fire_rate": 1.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 5,
+      "reload_time": 0.5,
+      "reload_per_shell": true,
+      "ammo_type": "shells",
+      "rarity_min": "standard",
+      "rarity_max": "elite",
+      "headshot_allowed": false,
+      "ttk_expected": 1.0,
+      "accuracy": 0.6,
+      "spread": {
+        "hip": 6.0,
+        "ads": 4.5,
+        "moving": 7.0
+      },
+      "falloff": {
+        "start_m": 8,
+        "end_m": 20,
+        "min_multiplier": 0.2
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.95,
+      "ads_time": 0.2,
+      "aim_assist_strength": 0.6,
+      "vehicle_damage_multiplier": 0.5,
+      "sound_profile": {
+        "family": "shotgun",
+        "audible_range_m": 250
+      },
+      "ttk_band": [
+        0.8,
+        1.2
+      ],
+      "ttk_band_reason": "Point-blank specialist: fast TTK only within 8 m; damage falls to 20% by 20 m."
+    },
+    {
+      "id": "marksman_rifle",
+      "display_name": "Marksman Rifle",
+      "family": "marksman",
+      "body_damage": 30,
+      "pellets": 1,
+      "fire_rate": 1.5,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 10,
+      "reload_time": 2.5,
+      "reload_per_shell": false,
+      "ammo_type": "medium",
+      "rarity_min": "advanced",
+      "rarity_max": "prototype",
+      "headshot_allowed": true,
+      "ttk_expected": 2.0,
+      "accuracy": 0.95,
+      "spread": {
+        "hip": 4.0,
+        "ads": 0.2,
+        "moving": 5.0
+      },
+      "falloff": {
+        "start_m": 60,
+        "end_m": 150,
+        "min_multiplier": 0.75
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.9,
+      "ads_time": 0.3,
+      "aim_assist_strength": 0.35,
+      "vehicle_damage_multiplier": 0.7,
+      "sound_profile": {
+        "family": "marksman",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "sniper_rifle",
+      "display_name": "Sniper Rifle",
+      "family": "sniper",
+      "body_damage": 75,
+      "pellets": 1,
+      "fire_rate": 0.5,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 5,
+      "reload_time": 3.0,
+      "reload_per_shell": false,
+      "ammo_type": "heavy",
+      "rarity_min": "elite",
+      "rarity_max": "prototype",
+      "headshot_allowed": true,
+      "ttk_expected": 2.0,
+      "accuracy": 0.98,
+      "spread": {
+        "hip": 8.0,
+        "ads": 0.05,
+        "moving": 10.0
+      },
+      "falloff": {
+        "start_m": 150,
+        "end_m": 400,
+        "min_multiplier": 0.8
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.85,
+      "ads_time": 0.45,
+      "aim_assist_strength": 0.25,
+      "vehicle_damage_multiplier": 1.0,
+      "sound_profile": {
+        "family": "sniper",
+        "audible_range_m": 400
+      },
+      "visible_tracer": true
+    },
+    {
+      "id": "lmg",
+      "display_name": "LMG",
+      "family": "lmg",
+      "body_damage": 10,
+      "pellets": 1,
+      "fire_rate": 6.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.4,
+      "mag_size": 75,
+      "reload_time": 4.5,
+      "reload_per_shell": false,
+      "ammo_type": "heavy",
+      "rarity_min": "advanced",
+      "rarity_max": "elite",
+      "headshot_allowed": true,
+      "ttk_expected": 1.9,
+      "accuracy": 0.8,
+      "spread": {
+        "hip": 3.2,
+        "ads": 1.2,
+        "moving": 4.5
+      },
+      "falloff": {
+        "start_m": 30,
+        "end_m": 70,
+        "min_multiplier": 0.6
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.82,
+      "ads_time": 0.35,
+      "aim_assist_strength": 0.4,
+      "vehicle_damage_multiplier": 0.8,
+      "sound_profile": {
+        "family": "lmg",
+        "audible_range_m": 250
+      }
+    },
+    {
+      "id": "stun_gun",
+      "display_name": "Stun Gun",
+      "family": "stun",
+      "body_damage": 0,
+      "pellets": 1,
+      "fire_rate": 1.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 3,
+      "reload_time": 0.0,
+      "reload_per_shell": false,
+      "ammo_type": "energy_cells",
+      "rarity_min": "advanced",
+      "rarity_max": "advanced",
+      "headshot_allowed": false,
+      "ttk_expected": 0.0,
+      "accuracy": 0.85,
+      "spread": {
+        "hip": 1.5,
+        "ads": 1.0,
+        "moving": 2.0
+      },
+      "falloff": {
+        "start_m": 8,
+        "end_m": 15,
+        "min_multiplier": 1.0
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 1.0,
+      "ads_time": 0.15,
+      "aim_assist_strength": 0.6,
+      "vehicle_damage_multiplier": 0.0,
+      "sound_profile": {
+        "family": "stun",
+        "audible_range_m": 60
+      },
+      "stun_seconds": 4.0,
+      "ttk_band": null,
+      "ttk_band_reason": "Non-lethal: stuns for 4 s (no move, no fire), deals no damage."
+    },
+    {
+      "id": "grenade_launcher",
+      "display_name": "Grenade Launcher",
+      "family": "explosive",
+      "body_damage": 70,
+      "pellets": 1,
+      "fire_rate": 1.0,
+      "burst_count": 1,
+      "burst_interval": 0.0,
+      "spin_up": 0.0,
+      "mag_size": 4,
+      "reload_time": 3.2,
+      "reload_per_shell": false,
+      "ammo_type": "explosive",
+      "rarity_min": "prototype",
+      "rarity_max": "prototype",
+      "headshot_allowed": false,
+      "ttk_expected": 1.0,
+      "accuracy": 0.8,
+      "spread": {
+        "hip": 3.0,
+        "ads": 2.0,
+        "moving": 4.0
+      },
+      "falloff": {
+        "start_m": 0,
+        "end_m": 0,
+        "min_multiplier": 1.0
+      },
+      "recoil_pattern": [
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.1,
+          0.7
+        ],
+        [
+          -0.15,
+          0.8
+        ],
+        [
+          0.2,
+          0.8
+        ],
+        [
+          -0.1,
+          0.9
+        ]
+      ],
+      "move_speed_multiplier": 0.88,
+      "ads_time": 0.3,
+      "aim_assist_strength": 0.2,
+      "vehicle_damage_multiplier": 3.0,
+      "sound_profile": {
+        "family": "explosive",
+        "audible_range_m": 300
+      },
+      "splash_radius_m": 4.0,
+      "splash_min_multiplier": 0.25,
+      "ttk_band": [
+        0.8,
+        1.2
+      ],
+      "ttk_band_reason": "Rare Prototype-only explosive with 4 ammo per magazine; splash falloff and slow projectiles make the perfect-aim TTK unrealistic."
+    }
+  ]
+}

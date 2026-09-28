@@ -1,0 +1,5 @@
+{
+  "screenshot_default_frames": 30,
+  "console_max_lines": 200,
+  "fps_overlay_refresh_seconds": 0.25
+}
