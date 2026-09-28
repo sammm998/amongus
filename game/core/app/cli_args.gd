@@ -20,8 +20,15 @@ const DEFAULTS := {
 	"scene": "",
 	"preset": "",
 	"measure_fps": -1.0,
+	"bots": -1,
+	"auto_start": false,
+	"mode": "standard",
+	"map": "slice",
+	"seed": -1,
+	"sim_speed": 1.0,
+	"play": false,
 }
-const BOOL_FLAGS := ["server", "host", "console"]
+const BOOL_FLAGS := ["server", "host", "console", "auto_start", "play"]
 const TRANSPORTS := ["enet", "ws"]
 
 

@@ -58,7 +58,9 @@
       "sound_profile": {
         "family": "sidearm",
         "audible_range_m": 250
-      }
+      },
+      "slot": "sidearm",
+      "range_m": 200
     },
     {
       "id": "smg",
@@ -118,7 +120,9 @@
       "sound_profile": {
         "family": "smg",
         "audible_range_m": 250
-      }
+      },
+      "slot": "primary",
+      "range_m": 200
     },
     {
       "id": "assault_rifle",
@@ -178,7 +182,9 @@
       "sound_profile": {
         "family": "rifle",
         "audible_range_m": 250
-      }
+      },
+      "slot": "primary",
+      "range_m": 200
     },
     {
       "id": "burst_rifle",
@@ -238,7 +244,9 @@
       "sound_profile": {
         "family": "rifle",
         "audible_range_m": 250
-      }
+      },
+      "slot": "primary",
+      "range_m": 200
     },
     {
       "id": "shotgun",
@@ -303,7 +311,9 @@
         0.8,
         1.2
       ],
-      "ttk_band_reason": "Point-blank specialist: fast TTK only within 8 m; damage falls to 20% by 20 m."
+      "ttk_band_reason": "Point-blank specialist: fast TTK only within 8 m; damage falls to 20% by 20 m.",
+      "slot": "secondary",
+      "range_m": 200
     },
     {
       "id": "marksman_rifle",
@@ -363,7 +373,9 @@
       "sound_profile": {
         "family": "marksman",
         "audible_range_m": 250
-      }
+      },
+      "slot": "primary",
+      "range_m": 300
     },
     {
       "id": "sniper_rifle",
@@ -424,7 +436,9 @@
         "family": "sniper",
         "audible_range_m": 400
       },
-      "visible_tracer": true
+      "visible_tracer": true,
+      "slot": "primary",
+      "range_m": 400
     },
     {
       "id": "lmg",
@@ -484,7 +498,9 @@
       "sound_profile": {
         "family": "lmg",
         "audible_range_m": 250
-      }
+      },
+      "slot": "primary",
+      "range_m": 200
     },
     {
       "id": "stun_gun",
@@ -547,7 +563,9 @@
       },
       "stun_seconds": 4.0,
       "ttk_band": null,
-      "ttk_band_reason": "Non-lethal: stuns for 4 s (no move, no fire), deals no damage."
+      "ttk_band_reason": "Non-lethal: stuns for 4 s (no move, no fire), deals no damage.",
+      "slot": "sidearm",
+      "range_m": 200
     },
     {
       "id": "grenade_launcher",
@@ -614,7 +632,9 @@
         0.8,
         1.2
       ],
-      "ttk_band_reason": "Rare Prototype-only explosive with 4 ammo per magazine; splash falloff and slow projectiles make the perfect-aim TTK unrealistic."
+      "ttk_band_reason": "Rare Prototype-only explosive with 4 ammo per magazine; splash falloff and slow projectiles make the perfect-aim TTK unrealistic.",
+      "slot": "secondary",
+      "range_m": 200
     }
   ]
 }

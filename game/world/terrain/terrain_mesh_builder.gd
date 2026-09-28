@@ -42,7 +42,7 @@ func build_mesh(field: HeightField, origin: Vector2, size: Vector2, res: int) ->
 			var n := field.normal_at(x, z, maxf(step.x, 0.5))
 			verts[i] = Vector3(x, h, z)
 			normals[i] = n
-			colors[i] = color_for(h, n, x, z)
+			colors[i] = color_for(h, n, x, z, field.coast_distance(x, z) - field.beach_width)
 			i += 1
 	for zi in res:
 		for xi in res:
@@ -63,7 +63,8 @@ func build_mesh(field: HeightField, origin: Vector2, size: Vector2, res: int) ->
 	return mesh
 
 
-func color_for(h: float, n: Vector3, x: float, z: float) -> Color:
+## `inland` = metres past the top of the beach (negative on the beach / at sea).
+func color_for(h: float, n: Vector3, x: float, z: float, inland: float = 1000.0) -> Color:
 	var jitter := _detail.get_noise_2d(x, z)
 	var c: Color
 	if h < -0.4:
@@ -73,10 +74,12 @@ func color_for(h: float, n: Vector3, x: float, z: float) -> Color:
 			c = CORAL_A.lerp(CORAL_B, clampf(jitter + 0.5, 0.0, 1.0))
 	elif h < 0.25:
 		c = WET_SAND.lerp(SAND, clampf((h + 0.4) / 0.65, 0.0, 1.0))
-	elif h < beach_top:
+	elif h < beach_top and inland >= 999.0:
 		c = SAND
 	else:
 		var g := clampf((h - beach_top) / (grass_start - beach_top), 0.0, 1.0)
+		if inland < 999.0:
+			g = smoothstep(-2.0, 4.0, inland + _detail.get_noise_2d(x * 3.0, z * 3.0) * 3.0)
 		var green := GRASS.lerp(JUNGLE, clampf(0.5 + jitter * 1.2 + (h - 8.0) / 30.0, 0.0, 1.0))
 		c = SAND.lerp(green, g)
 	if h > 0.8 and (n.y < rock_slope or h > high_rock):

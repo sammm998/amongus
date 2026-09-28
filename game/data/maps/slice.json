@@ -1,0 +1,1607 @@
+{
+ "id": "slice",
+ "name": "Sunset Island \u2014 Slice",
+ "terrain": {
+  "sea_floor": -16,
+  "land_level": 2.4,
+  "beach_width": 12,
+  "shelf_width": 26,
+  "shelf_depth": 2.5,
+  "dropoff": 60,
+  "noise": {
+   "amplitude": 1.6,
+   "frequency": 0.02,
+   "seed": 21
+  },
+  "land": [
+   {
+    "x": 0,
+    "z": -15,
+    "rx": 185,
+    "rz": 118
+   },
+   {
+    "x": -80,
+    "z": 100,
+    "rx": 50,
+    "rz": 30
+   }
+  ],
+  "hills": [
+   {
+    "x": 0,
+    "z": -110,
+    "radius": 60,
+    "height": 16
+   },
+   {
+    "x": -120,
+    "z": -92,
+    "radius": 50,
+    "height": 12
+   },
+   {
+    "x": 90,
+    "z": -98,
+    "radius": 45,
+    "height": 9
+   },
+   {
+    "x": -165,
+    "z": 20,
+    "radius": 35,
+    "height": 8
+   },
+   {
+    "x": 70,
+    "z": 55,
+    "radius": 40,
+    "height": 6
+   }
+  ],
+  "flats": [
+   {
+    "x": 0,
+    "z": -18,
+    "radius": 52,
+    "height": 3.0,
+    "blend": 0.35
+   },
+   {
+    "x": -115,
+    "z": -18,
+    "radius": 34,
+    "height": 2.8,
+    "blend": 0.35
+   },
+   {
+    "x": 148,
+    "z": -22,
+    "radius": 38,
+    "height": 2.6,
+    "blend": 0.3
+   },
+   {
+    "x": 0,
+    "z": 40,
+    "radius": 16,
+    "height": 2.7,
+    "blend": 0.6
+   }
+  ]
+ },
+ "collision": {
+  "center": [
+   0,
+   -10
+  ],
+  "size": 440
+ },
+ "boundary": {
+  "x": 0,
+  "z": -10,
+  "rx": 205,
+  "rz": 145,
+  "segments": 40,
+  "height": 30
+ },
+ "sun_direction": [
+  0.72,
+  0.075,
+  -0.69
+ ],
+ "districts": [
+  {
+   "id": "central_command",
+   "name": "Central Command",
+   "x": 0,
+   "z": -20,
+   "radius": 55,
+   "color": "#1f3a66",
+   "accent": "#2de2e6"
+  },
+  {
+   "id": "medical",
+   "name": "Medical Center",
+   "x": -115,
+   "z": -18,
+   "radius": 42,
+   "color": "#e8f4f2",
+   "accent": "#18b3a8"
+  },
+  {
+   "id": "harbor",
+   "name": "Harbor",
+   "x": 150,
+   "z": -20,
+   "radius": 48,
+   "color": "#2a5d8f",
+   "accent": "#b5562c"
+  },
+  {
+   "id": "beach",
+   "name": "Sunset Beach",
+   "x": -10,
+   "z": 100,
+   "radius": 70,
+   "color": "#f5e4c3",
+   "accent": "#ff9f5a"
+  },
+  {
+   "id": "roads",
+   "name": "Island Road",
+   "x": 0,
+   "z": 30,
+   "radius": 400,
+   "color": "#666666",
+   "accent": "#ffcc33"
+  }
+ ],
+ "buildings": [
+  {
+   "id": "cc_hall",
+   "district": "central_command",
+   "style": "command",
+   "x": 0,
+   "z": -20,
+   "w": 36,
+   "d": 26,
+   "h": 6.5,
+   "doors": [
+    {
+     "side": "s",
+     "offset": 0,
+     "width": 4
+    },
+    {
+     "side": "n",
+     "offset": 0,
+     "width": 4
+    },
+    {
+     "side": "e",
+     "offset": 0,
+     "width": 3.5
+    },
+    {
+     "side": "w",
+     "offset": 0,
+     "width": 3.5
+    }
+   ]
+  },
+  {
+   "id": "cc_annex",
+   "district": "central_command",
+   "style": "industrial",
+   "x": 32,
+   "z": -44,
+   "w": 12,
+   "d": 16,
+   "h": 4.5,
+   "doors": [
+    {
+     "side": "w",
+     "offset": 0,
+     "width": 4
+    }
+   ]
+  },
+  {
+   "id": "med_center",
+   "district": "medical",
+   "style": "medical",
+   "x": -115,
+   "z": -20,
+   "w": 26,
+   "d": 18,
+   "h": 5.5,
+   "doors": [
+    {
+     "side": "e",
+     "offset": 0,
+     "width": 4
+    },
+    {
+     "side": "s",
+     "offset": 0,
+     "width": 3.5
+    }
+   ]
+  },
+  {
+   "id": "harbor_warehouse",
+   "district": "harbor",
+   "style": "warehouse",
+   "x": 140,
+   "z": -40,
+   "w": 24,
+   "d": 14,
+   "h": 7,
+   "doors": [
+    {
+     "side": "w",
+     "offset": 0,
+     "width": 5
+    },
+    {
+     "side": "s",
+     "offset": 0,
+     "width": 5
+    }
+   ]
+  },
+  {
+   "id": "beach_hut",
+   "district": "beach",
+   "style": "hut",
+   "x": 18,
+   "z": 86,
+   "w": 6,
+   "d": 5,
+   "h": 3.2,
+   "doors": [
+    {
+     "side": "s",
+     "offset": 0,
+     "width": 2
+    }
+   ]
+  }
+ ],
+ "props": [
+  {
+   "kind": "meeting_table",
+   "x": 0,
+   "z": -22,
+   "w": 6,
+   "h": 1.0,
+   "d": 6
+  },
+  {
+   "kind": "monitor_wall",
+   "x": -10,
+   "z": -32.2,
+   "w": 9,
+   "h": 3.2,
+   "d": 0.6
+  },
+  {
+   "kind": "server_rack",
+   "x": 16.5,
+   "z": -11,
+   "w": 1.2,
+   "h": 2.4,
+   "d": 4
+  },
+  {
+   "kind": "container",
+   "x": 152,
+   "z": -2,
+   "w": 6,
+   "h": 2.6,
+   "d": 2.5,
+   "color": "#c0392b"
+  },
+  {
+   "kind": "container",
+   "x": 160,
+   "z": -4,
+   "w": 6,
+   "h": 2.6,
+   "d": 2.5,
+   "color": "#2980b9"
+  },
+  {
+   "kind": "container",
+   "x": 156,
+   "z": 2,
+   "w": 6,
+   "h": 2.6,
+   "d": 2.5,
+   "color": "#f1c40f"
+  },
+  {
+   "kind": "container",
+   "x": 146,
+   "z": 4,
+   "w": 2.5,
+   "h": 2.6,
+   "d": 6,
+   "color": "#27ae60"
+  },
+  {
+   "kind": "fuel_tank",
+   "x": 132,
+   "z": -8,
+   "w": 5,
+   "h": 4.5,
+   "d": 5
+  },
+  {
+   "kind": "crane",
+   "x": 172,
+   "z": -32,
+   "w": 4,
+   "h": 16,
+   "d": 4
+  },
+  {
+   "kind": "wreck",
+   "x": -30,
+   "z": 99,
+   "w": 7,
+   "h": 2.2,
+   "d": 4
+  },
+  {
+   "kind": "radar",
+   "x": 8,
+   "z": -44,
+   "w": 2.5,
+   "h": 6,
+   "d": 2.5
+  },
+  {
+   "kind": "crate_stack",
+   "x": -8,
+   "z": 2,
+   "w": 2,
+   "h": 1.6,
+   "d": 2
+  },
+  {
+   "kind": "crate_stack",
+   "x": 24,
+   "z": -6,
+   "w": 2,
+   "h": 1.6,
+   "d": 3
+  },
+  {
+   "kind": "crate_stack",
+   "x": 120,
+   "z": -20,
+   "w": 3,
+   "h": 1.6,
+   "d": 2
+  },
+  {
+   "kind": "helipad",
+   "x": -115,
+   "z": 8,
+   "w": 12,
+   "h": 0.2,
+   "d": 12
+  }
+ ],
+ "stations": [
+  {
+   "id": "cc_security",
+   "kind": "console",
+   "x": -12.5,
+   "z": -31,
+   "district": "central_command",
+   "label": "Security console"
+  },
+  {
+   "id": "security_reset",
+   "kind": "security_desk",
+   "x": -7.5,
+   "z": -31,
+   "district": "central_command",
+   "label": "Camera network reset"
+  },
+  {
+   "id": "cc_comms",
+   "kind": "console",
+   "x": 12,
+   "z": -31,
+   "district": "central_command",
+   "label": "Comms array"
+  },
+  {
+   "id": "cc_server",
+   "kind": "console",
+   "x": 15,
+   "z": -13,
+   "district": "central_command",
+   "label": "Server racks"
+  },
+  {
+   "id": "emergency_button",
+   "kind": "button",
+   "x": 0,
+   "z": -17.6,
+   "district": "central_command",
+   "label": "Emergency button"
+  },
+  {
+   "id": "cc_power_1",
+   "kind": "console",
+   "x": 36,
+   "z": -50,
+   "district": "central_command",
+   "label": "Generator control A"
+  },
+  {
+   "id": "cc_power_2",
+   "kind": "console",
+   "x": 36,
+   "z": -38,
+   "district": "central_command",
+   "label": "Generator control B"
+  },
+  {
+   "id": "gen_a",
+   "kind": "generator",
+   "x": 30,
+   "z": -49,
+   "district": "central_command",
+   "label": "Generator A"
+  },
+  {
+   "id": "gen_b",
+   "kind": "generator",
+   "x": 30,
+   "z": -44,
+   "district": "central_command",
+   "label": "Generator B"
+  },
+  {
+   "id": "gen_c",
+   "kind": "generator",
+   "x": 30,
+   "z": -39,
+   "district": "central_command",
+   "label": "Generator C"
+  },
+  {
+   "id": "cc_roof_radar",
+   "kind": "console",
+   "x": 8,
+   "z": -40.5,
+   "district": "central_command",
+   "label": "Radar calibration"
+  },
+  {
+   "id": "breaker_central_command",
+   "kind": "breaker",
+   "x": -19.2,
+   "z": -12,
+   "district": "central_command",
+   "label": "Breaker"
+  },
+  {
+   "id": "med_pharmacy",
+   "kind": "console",
+   "x": -124,
+   "z": -26.5,
+   "district": "medical",
+   "label": "Pharmacy"
+  },
+  {
+   "id": "med_records",
+   "kind": "console",
+   "x": -107,
+   "z": -26.5,
+   "district": "medical",
+   "label": "Records terminal"
+  },
+  {
+   "id": "med_pod_1",
+   "kind": "medpod",
+   "x": -121,
+   "z": -14,
+   "district": "medical",
+   "label": "Revival station"
+  },
+  {
+   "id": "med_pod_2",
+   "kind": "medpod",
+   "x": -109,
+   "z": -14,
+   "district": "medical",
+   "label": "Revival station"
+  },
+  {
+   "id": "breaker_medical",
+   "kind": "breaker",
+   "x": -101.2,
+   "z": -14,
+   "district": "medical",
+   "label": "Breaker"
+  },
+  {
+   "id": "harbor_office",
+   "kind": "console",
+   "x": 133,
+   "z": -45,
+   "district": "harbor",
+   "label": "Harbor office"
+  },
+  {
+   "id": "harbor_cargo",
+   "kind": "crate",
+   "x": 150,
+   "z": -9,
+   "district": "harbor",
+   "label": "Cargo"
+  },
+  {
+   "id": "harbor_crane",
+   "kind": "console",
+   "x": 168,
+   "z": -27,
+   "district": "harbor",
+   "label": "Crane controls"
+  },
+  {
+   "id": "harbor_fuel",
+   "kind": "console",
+   "x": 136,
+   "z": -12,
+   "district": "harbor",
+   "label": "Fuel pump"
+  },
+  {
+   "id": "harbor_generator",
+   "kind": "generator",
+   "x": 126,
+   "z": -27,
+   "district": "harbor",
+   "label": "Harbor generator"
+  },
+  {
+   "id": "breaker_harbor",
+   "kind": "breaker",
+   "x": 127.2,
+   "z": -35,
+   "district": "harbor",
+   "label": "Breaker"
+  },
+  {
+   "id": "beacon_harbor",
+   "kind": "beacon",
+   "x": 199,
+   "z": -15,
+   "district": "harbor",
+   "label": "Harbor beacon"
+  },
+  {
+   "id": "relay_road",
+   "kind": "relay",
+   "x": -60,
+   "z": -14,
+   "district": "roads",
+   "label": "Roadside relay"
+  },
+  {
+   "id": "relay_harbor",
+   "kind": "relay",
+   "x": 90,
+   "z": -26,
+   "district": "roads",
+   "label": "Harbor relay"
+  },
+  {
+   "id": "relay_beach",
+   "kind": "relay",
+   "x": 30,
+   "z": 97,
+   "district": "beach",
+   "label": "Beach relay"
+  },
+  {
+   "id": "crash_beach",
+   "kind": "wreck_site",
+   "x": -26,
+   "z": 95,
+   "district": "beach",
+   "label": "Crash site"
+  },
+  {
+   "id": "beacon_point",
+   "kind": "beacon",
+   "x": -86,
+   "z": 117,
+   "district": "beach",
+   "label": "Point beacon"
+  },
+  {
+   "id": "breaker_beach",
+   "kind": "breaker",
+   "x": 18,
+   "z": 88.9,
+   "district": "beach",
+   "label": "Breaker"
+  }
+ ],
+ "cameras": [
+  {
+   "id": "cam_cc",
+   "district": "central_command",
+   "x": 14,
+   "y": 7,
+   "z": 2,
+   "tx": 0,
+   "ty": 1,
+   "tz": -12,
+   "label": "CENTRAL COMMAND"
+  },
+  {
+   "id": "cam_medical",
+   "district": "medical",
+   "x": -96,
+   "y": 7,
+   "z": -2,
+   "tx": -110,
+   "ty": 1,
+   "tz": -14,
+   "label": "MEDICAL CENTER"
+  },
+  {
+   "id": "cam_harbor",
+   "district": "harbor",
+   "x": 120,
+   "y": 8,
+   "z": -10,
+   "tx": 150,
+   "ty": 1,
+   "tz": -12,
+   "label": "HARBOR"
+  },
+  {
+   "id": "cam_beach",
+   "district": "beach",
+   "x": -5,
+   "y": 9,
+   "z": 72,
+   "tx": -10,
+   "ty": 1,
+   "tz": 98,
+   "label": "SUNSET BEACH"
+  }
+ ],
+ "spawns": [
+  {
+   "x": -19.1,
+   "z": 4.0
+  },
+  {
+   "x": -14.8,
+   "z": 7.0
+  },
+  {
+   "x": -10.5,
+   "z": 10.0
+  },
+  {
+   "x": -6.2,
+   "z": 4.0
+  },
+  {
+   "x": -2.3,
+   "z": 7.0
+  },
+  {
+   "x": 1.4,
+   "z": 10.0
+  },
+  {
+   "x": 4.5,
+   "z": 4.0
+  },
+  {
+   "x": 7.3,
+   "z": 7.0
+  },
+  {
+   "x": 9.7,
+   "z": 10.0
+  },
+  {
+   "x": 11.8,
+   "z": 4.0
+  },
+  {
+   "x": 13.9,
+   "z": 7.0
+  },
+  {
+   "x": 16.0,
+   "z": 10.0
+  }
+ ],
+ "loot": [
+  {
+   "item": "assault_rifle",
+   "rarity": "standard",
+   "x": 137,
+   "z": -37
+  },
+  {
+   "item": "assault_rifle",
+   "rarity": "advanced",
+   "x": -112,
+   "z": -24
+  },
+  {
+   "item": "assault_rifle",
+   "rarity": "standard",
+   "x": -24,
+   "z": 99
+  },
+  {
+   "item": "shotgun",
+   "rarity": "standard",
+   "x": 158,
+   "z": -10
+  },
+  {
+   "item": "shotgun",
+   "rarity": "standard",
+   "x": -130,
+   "z": -6
+  },
+  {
+   "item": "shotgun",
+   "rarity": "advanced",
+   "x": 40,
+   "z": 99
+  },
+  {
+   "item": "ammo_medium",
+   "amount": 60,
+   "x": 140,
+   "z": -36
+  },
+  {
+   "item": "ammo_medium",
+   "amount": 60,
+   "x": -118,
+   "z": -24
+  },
+  {
+   "item": "ammo_medium",
+   "amount": 60,
+   "x": -20,
+   "z": 97
+  },
+  {
+   "item": "ammo_shells",
+   "amount": 10,
+   "x": 160,
+   "z": -12
+  },
+  {
+   "item": "ammo_shells",
+   "amount": 10,
+   "x": -128,
+   "z": -8
+  },
+  {
+   "item": "ammo_shells",
+   "amount": 10,
+   "x": 42,
+   "z": 96
+  },
+  {
+   "item": "ammo_light",
+   "amount": 36,
+   "x": 10,
+   "z": -10
+  },
+  {
+   "item": "ammo_light",
+   "amount": 36,
+   "x": 60,
+   "z": -30
+  },
+  {
+   "item": "ammo_light",
+   "amount": 36,
+   "x": -60,
+   "z": -22
+  },
+  {
+   "item": "med_patch",
+   "amount": 2,
+   "x": -116,
+   "z": -27
+  },
+  {
+   "item": "med_patch",
+   "amount": 2,
+   "x": -104,
+   "z": -16
+  },
+  {
+   "item": "shield_cell",
+   "amount": 2,
+   "x": 145,
+   "z": -44
+  },
+  {
+   "item": "shield_cell",
+   "amount": 2,
+   "x": 5,
+   "z": 92
+  }
+ ],
+ "roads": [
+  [
+   [
+    0,
+    -6
+   ],
+   [
+    0,
+    20
+   ],
+   [
+    0,
+    50
+   ],
+   [
+    2,
+    80
+   ],
+   [
+    6,
+    92
+   ]
+  ],
+  [
+   [
+    20,
+    -20
+   ],
+   [
+    45,
+    -24
+   ],
+   [
+    70,
+    -28
+   ],
+   [
+    95,
+    -30
+   ],
+   [
+    124,
+    -40
+   ]
+  ],
+  [
+   [
+    -20,
+    -20
+   ],
+   [
+    -45,
+    -20
+   ],
+   [
+    -70,
+    -18
+   ],
+   [
+    -100,
+    -20
+   ]
+  ],
+  [
+   [
+    140,
+    -32
+   ],
+   [
+    142,
+    -22
+   ],
+   [
+    150,
+    -16
+   ],
+   [
+    176,
+    -15
+   ]
+  ]
+ ],
+ "meeting_center": [
+  0,
+  -22
+ ],
+ "medical_respawn": [
+  "med_pod_1",
+  "med_pod_2"
+ ],
+ "generators": [
+  "gen_a",
+  "gen_b",
+  "gen_c"
+ ],
+ "waypoints": {
+  "cc_c": [
+   0,
+   -16
+  ],
+  "cc_w": [
+   -12,
+   -20
+  ],
+  "cc_e": [
+   12,
+   -20
+  ],
+  "cc_n": [
+   0,
+   -28
+  ],
+  "cc_nw": [
+   -10,
+   -28
+  ],
+  "cc_ne": [
+   12,
+   -28
+  ],
+  "cc_se": [
+   13,
+   -12
+  ],
+  "cc_sw": [
+   -12,
+   -12
+  ],
+  "cc_ds_in": [
+   0,
+   -10
+  ],
+  "cc_ds_out": [
+   0,
+   -3
+  ],
+  "cc_dn_in": [
+   0,
+   -30.5
+  ],
+  "cc_dn_out": [
+   0,
+   -37
+  ],
+  "cc_de_in": [
+   15.5,
+   -20
+  ],
+  "cc_de_out": [
+   21,
+   -20
+  ],
+  "cc_dw_in": [
+   -15.5,
+   -20
+  ],
+  "cc_dw_out": [
+   -21,
+   -20
+  ],
+  "an_out": [
+   22,
+   -44
+  ],
+  "an_in": [
+   28,
+   -44
+  ],
+  "an_n": [
+   33,
+   -49
+  ],
+  "an_s": [
+   33,
+   -39
+  ],
+  "ex_s": [
+   0,
+   2
+  ],
+  "ex_sw": [
+   -22,
+   0
+  ],
+  "ex_se": [
+   22,
+   -2
+  ],
+  "ex_n": [
+   0,
+   -42
+  ],
+  "ex_nw": [
+   -22,
+   -40
+  ],
+  "ex_ne": [
+   16,
+   -44
+  ],
+  "breaker_cc_wp": [
+   -21,
+   -12
+  ],
+  "radar_wp": [
+   4,
+   -42
+  ],
+  "rw1": [
+   -40,
+   -20
+  ],
+  "rw2": [
+   -60,
+   -18
+  ],
+  "rw3": [
+   -85,
+   -20
+  ],
+  "med_de_out": [
+   -97,
+   -20
+  ],
+  "med_de_in": [
+   -105,
+   -20
+  ],
+  "med_c": [
+   -115,
+   -20
+  ],
+  "med_ph": [
+   -122,
+   -24
+  ],
+  "med_rc": [
+   -108,
+   -24
+  ],
+  "med_p1": [
+   -120,
+   -16.5
+  ],
+  "med_p2": [
+   -110,
+   -16.5
+  ],
+  "med_ds_in": [
+   -115,
+   -14
+  ],
+  "med_ds_out": [
+   -115,
+   -6
+  ],
+  "heli": [
+   -115,
+   8
+  ],
+  "breaker_med_wp": [
+   -99,
+   -14
+  ],
+  "med_west": [
+   -134,
+   -6
+  ],
+  "re1": [
+   40,
+   -24
+  ],
+  "re2": [
+   65,
+   -28
+  ],
+  "re3": [
+   90,
+   -30
+  ],
+  "re4": [
+   112,
+   -36
+  ],
+  "hw_out": [
+   123,
+   -40
+  ],
+  "hw_in": [
+   131,
+   -40
+  ],
+  "wh_c": [
+   140,
+   -40
+  ],
+  "wh_off": [
+   134,
+   -43
+  ],
+  "hs_in": [
+   140,
+   -36
+  ],
+  "hs_out": [
+   140,
+   -29
+  ],
+  "hy1": [
+   142,
+   -20
+  ],
+  "hy_cargo": [
+   150,
+   -12
+  ],
+  "hy_fuel": [
+   138,
+   -14
+  ],
+  "hy_crane": [
+   166,
+   -24
+  ],
+  "pier_s": [
+   176,
+   -15
+  ],
+  "pier_e": [
+   197,
+   -15
+  ],
+  "hgen": [
+   124,
+   -28
+  ],
+  "breaker_h_wp": [
+   124,
+   -35
+  ],
+  "hy_cont": [
+   160,
+   -12
+  ],
+  "rs1": [
+   0,
+   15
+  ],
+  "rs2": [
+   0,
+   40
+  ],
+  "rs3": [
+   2,
+   65
+  ],
+  "beach_c": [
+   6,
+   92
+  ],
+  "crash": [
+   -24,
+   93
+  ],
+  "relay_b": [
+   28,
+   94
+  ],
+  "hut": [
+   18,
+   91
+  ],
+  "bw1": [
+   -45,
+   100
+  ],
+  "bw2": [
+   -70,
+   108
+  ],
+  "beacon": [
+   -84,
+   114
+  ],
+  "loot_b": [
+   40,
+   96
+  ],
+  "relay_r": [
+   -60,
+   -15
+  ],
+  "relay_h": [
+   90,
+   -27
+  ],
+  "mid_e": [
+   40,
+   30
+  ],
+  "mid_w": [
+   -50,
+   30
+  ]
+ },
+ "edges": [
+  [
+   "cc_ds_out",
+   "cc_ds_in"
+  ],
+  [
+   "cc_ds_in",
+   "cc_c"
+  ],
+  [
+   "cc_c",
+   "cc_sw"
+  ],
+  [
+   "cc_sw",
+   "cc_w"
+  ],
+  [
+   "cc_w",
+   "cc_nw"
+  ],
+  [
+   "cc_nw",
+   "cc_n"
+  ],
+  [
+   "cc_n",
+   "cc_ne"
+  ],
+  [
+   "cc_ne",
+   "cc_e"
+  ],
+  [
+   "cc_e",
+   "cc_se"
+  ],
+  [
+   "cc_se",
+   "cc_c"
+  ],
+  [
+   "cc_w",
+   "cc_dw_in"
+  ],
+  [
+   "cc_dw_in",
+   "cc_dw_out"
+  ],
+  [
+   "cc_e",
+   "cc_de_in"
+  ],
+  [
+   "cc_de_in",
+   "cc_de_out"
+  ],
+  [
+   "cc_n",
+   "cc_dn_in"
+  ],
+  [
+   "cc_dn_in",
+   "cc_dn_out"
+  ],
+  [
+   "cc_ds_in",
+   "cc_sw"
+  ],
+  [
+   "cc_ds_in",
+   "cc_se"
+  ],
+  [
+   "cc_de_out",
+   "an_out"
+  ],
+  [
+   "an_out",
+   "an_in"
+  ],
+  [
+   "an_in",
+   "an_n"
+  ],
+  [
+   "an_in",
+   "an_s"
+  ],
+  [
+   "cc_ds_out",
+   "ex_s"
+  ],
+  [
+   "ex_s",
+   "ex_sw"
+  ],
+  [
+   "ex_sw",
+   "cc_dw_out"
+  ],
+  [
+   "ex_s",
+   "ex_se"
+  ],
+  [
+   "ex_se",
+   "cc_de_out"
+  ],
+  [
+   "cc_dw_out",
+   "breaker_cc_wp"
+  ],
+  [
+   "cc_dn_out",
+   "ex_n"
+  ],
+  [
+   "ex_n",
+   "radar_wp"
+  ],
+  [
+   "ex_n",
+   "ex_nw"
+  ],
+  [
+   "ex_nw",
+   "cc_dw_out"
+  ],
+  [
+   "ex_n",
+   "ex_ne"
+  ],
+  [
+   "ex_ne",
+   "an_out"
+  ],
+  [
+   "cc_dw_out",
+   "rw1"
+  ],
+  [
+   "rw1",
+   "rw2"
+  ],
+  [
+   "rw2",
+   "rw3"
+  ],
+  [
+   "rw3",
+   "med_de_out"
+  ],
+  [
+   "med_de_out",
+   "med_de_in"
+  ],
+  [
+   "med_de_in",
+   "med_c"
+  ],
+  [
+   "med_c",
+   "med_ph"
+  ],
+  [
+   "med_c",
+   "med_rc"
+  ],
+  [
+   "med_c",
+   "med_p1"
+  ],
+  [
+   "med_c",
+   "med_p2"
+  ],
+  [
+   "med_c",
+   "med_ds_in"
+  ],
+  [
+   "med_ds_in",
+   "med_ds_out"
+  ],
+  [
+   "med_ds_out",
+   "heli"
+  ],
+  [
+   "med_de_out",
+   "breaker_med_wp"
+  ],
+  [
+   "med_ds_out",
+   "med_west"
+  ],
+  [
+   "cc_de_out",
+   "re1"
+  ],
+  [
+   "re1",
+   "re2"
+  ],
+  [
+   "re2",
+   "re3"
+  ],
+  [
+   "re3",
+   "re4"
+  ],
+  [
+   "re4",
+   "hw_out"
+  ],
+  [
+   "hw_out",
+   "hw_in"
+  ],
+  [
+   "hw_in",
+   "wh_c"
+  ],
+  [
+   "wh_c",
+   "wh_off"
+  ],
+  [
+   "wh_c",
+   "hs_in"
+  ],
+  [
+   "hs_in",
+   "hs_out"
+  ],
+  [
+   "hs_out",
+   "hy1"
+  ],
+  [
+   "hy1",
+   "hy_cargo"
+  ],
+  [
+   "hy_cargo",
+   "hy_cont"
+  ],
+  [
+   "hy_cont",
+   "hy_crane"
+  ],
+  [
+   "hy1",
+   "hy_fuel"
+  ],
+  [
+   "hy_cargo",
+   "pier_s"
+  ],
+  [
+   "pier_s",
+   "pier_e"
+  ],
+  [
+   "hw_out",
+   "breaker_h_wp"
+  ],
+  [
+   "breaker_h_wp",
+   "hgen"
+  ],
+  [
+   "hgen",
+   "hy1"
+  ],
+  [
+   "hy_crane",
+   "pier_s"
+  ],
+  [
+   "ex_s",
+   "rs1"
+  ],
+  [
+   "rs1",
+   "rs2"
+  ],
+  [
+   "rs2",
+   "rs3"
+  ],
+  [
+   "rs3",
+   "beach_c"
+  ],
+  [
+   "beach_c",
+   "crash"
+  ],
+  [
+   "crash",
+   "bw1"
+  ],
+  [
+   "bw1",
+   "bw2"
+  ],
+  [
+   "bw2",
+   "beacon"
+  ],
+  [
+   "beach_c",
+   "hut"
+  ],
+  [
+   "beach_c",
+   "relay_b"
+  ],
+  [
+   "relay_b",
+   "loot_b"
+  ],
+  [
+   "rw2",
+   "relay_r"
+  ],
+  [
+   "re3",
+   "relay_h"
+  ],
+  [
+   "rs2",
+   "mid_e"
+  ],
+  [
+   "mid_e",
+   "re2"
+  ],
+  [
+   "rs2",
+   "mid_w"
+  ],
+  [
+   "mid_w",
+   "rw2"
+  ]
+ ]
+}

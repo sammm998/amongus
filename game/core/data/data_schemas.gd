@@ -14,6 +14,7 @@ const WEAPON_FIELDS := {
 	"spread": TYPE_DICTIONARY, "falloff": TYPE_DICTIONARY, "recoil_pattern": TYPE_ARRAY,
 	"move_speed_multiplier": NUMBER, "ads_time": NUMBER, "aim_assist_strength": NUMBER,
 	"vehicle_damage_multiplier": NUMBER, "sound_profile": TYPE_DICTIONARY,
+	"slot": TYPE_STRING, "range_m": NUMBER,
 }
 const COMBAT_FIELDS := {
 	"max_health": NUMBER, "max_shield": NUMBER, "headshot_multiplier": NUMBER,

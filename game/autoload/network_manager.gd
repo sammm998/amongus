@@ -8,6 +8,7 @@ signal roster_changed(players: Array)
 
 var server: ServerSession
 var client: ClientSession
+var match_server: MatchServer
 var net_config: Dictionary
 
 
@@ -32,11 +33,28 @@ func start_server(port: int = -1, kind: String = "enet") -> Error:
 		return err
 	server = session
 	server.log_line.connect(func(text: String) -> void: print("[server] ", text))
+	_create_match()
 	server_started.emit(actual_port)
 	return OK
 
 
+## The authoritative match lives next to the server session (listen or dedicated).
+func _create_match() -> void:
+	match_server = MatchServer.new()
+	match_server.name = "MatchServer"
+	match_server.session = server
+	add_child(match_server)
+	var args := GameData.args
+	match_server.setup(args["map"], args["mode"], {}, args["seed"])
+	server.client_joined.connect(func(id: int, player_name: String) -> void: match_server.add_human(id, player_name))
+	server.client_left.connect(func(id: int) -> void: match_server.remove_human(id))
+	server.game_message.connect(func(id: int, type: int, payload: Dictionary) -> void: match_server.handle_message(id, type, payload))
+
+
 func stop_server() -> void:
+	if match_server != null:
+		match_server.queue_free()
+		match_server = null
 	if server != null:
 		server.stop()
 		server = null
@@ -76,6 +94,7 @@ func stop_all() -> void:
 func _physics_process(delta: float) -> void:
 	if server != null:
 		server.tick(delta)
+	# match_server ticks itself in its own _physics_process (after the session poll).
 	if client != null:
 		client.tick(delta)
 

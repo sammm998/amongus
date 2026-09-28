@@ -1,0 +1,60 @@
+{
+  "slots": [
+    "primary",
+    "secondary",
+    "sidearm",
+    "utility",
+    "healing"
+  ],
+  "consumables": {
+    "med_patch": {
+      "display_name": "Med Patch",
+      "heal": 25.0,
+      "shield": 0.0,
+      "to_full": false,
+      "use_seconds": 2.0,
+      "max_stack": 6
+    },
+    "med_kit": {
+      "display_name": "Med Kit",
+      "heal": 100.0,
+      "shield": 0.0,
+      "to_full": true,
+      "use_seconds": 5.0,
+      "max_stack": 2
+    },
+    "shield_cell": {
+      "display_name": "Shield Cell",
+      "heal": 0.0,
+      "shield": 25.0,
+      "to_full": false,
+      "use_seconds": 2.0,
+      "max_stack": 6
+    },
+    "trauma_kit": {
+      "display_name": "Trauma Kit",
+      "heal": 50.0,
+      "shield": 25.0,
+      "to_full": false,
+      "use_seconds": 6.0,
+      "max_stack": 2
+    }
+  },
+  "ammo_pickups": {
+    "ammo_light": "light",
+    "ammo_medium": "medium",
+    "ammo_heavy": "heavy",
+    "ammo_shells": "shells",
+    "ammo_energy": "energy_cells",
+    "ammo_explosive": "explosive"
+  },
+  "pickup_hold_seconds": 0.35,
+  "weapon_starting_reserve": {
+    "light": 24,
+    "medium": 30,
+    "heavy": 10,
+    "shells": 10,
+    "energy_cells": 3,
+    "explosive": 4
+  }
+}

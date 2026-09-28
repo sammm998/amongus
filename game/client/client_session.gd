@@ -5,6 +5,8 @@ extends RefCounted
 signal state_changed(state: int)
 signal roster_changed(players: Array)
 signal rejected(reason: String)
+## Match-layer messages (everything after the handshake).
+signal game_message(type: int, payload: Dictionary)
 
 enum State { DISCONNECTED, CONNECTING, HANDSHAKING, CONNECTED, REJECTED, FAILED }
 
@@ -87,6 +89,11 @@ func _send(type: int, payload: Dictionary) -> void:
 	transport.send(Transport.SERVER_ID, Protocol.encode(type, payload))
 
 
+func send_game(type: int, payload: Dictionary, reliable: bool = true) -> void:
+	if state == State.CONNECTED:
+		transport.send(Transport.SERVER_ID, Protocol.encode(type, payload), reliable)
+
+
 func _set_state(new_state: int) -> void:
 	if new_state == state:
 		return
@@ -138,3 +145,6 @@ func _on_packet(from_peer: int, bytes: PackedByteArray) -> void:
 			transport.close()
 		Protocol.Msg.PONG:
 			rtt_ms = maxi(0, _now_ms() - int(p["t"]))
+		_:
+			if state == State.CONNECTED:
+				game_message.emit(msg["type"], p)

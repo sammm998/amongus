@@ -8,6 +8,8 @@ signal client_left(peer_id: int)
 ## Every message this server sends (used by tests, e.g. the role-leak test).
 signal message_sent(peer_id: int, type: int, payload: Dictionary)
 signal log_line(text: String)
+## Any non-handshake message from a READY client (match layer consumes these).
+signal game_message(peer_id: int, type: int, payload: Dictionary)
 
 enum ClientState { HANDSHAKING, READY }
 
@@ -83,9 +85,17 @@ func roster() -> Array:
 	return players
 
 
-func send_to(peer_id: int, type: int, payload: Dictionary) -> void:
-	transport.send(peer_id, Protocol.encode(type, payload))
+func send_to(peer_id: int, type: int, payload: Dictionary, reliable: bool = true) -> void:
+	transport.send(peer_id, Protocol.encode(type, payload), reliable)
 	message_sent.emit(peer_id, type, payload)
+
+
+func is_ready(peer_id: int) -> bool:
+	return clients.has(peer_id) and clients[peer_id]["state"] == ClientState.READY
+
+
+func client_name(peer_id: int) -> String:
+	return clients.get(peer_id, {}).get("name", "")
 
 
 func broadcast_ready(type: int, payload: Dictionary) -> void:
@@ -129,8 +139,11 @@ func _on_packet(peer_id: int, bytes: PackedByteArray) -> void:
 		Protocol.Msg.PING:
 			if state == ClientState.READY:
 				send_to(peer_id, Protocol.Msg.PONG, {"t": msg["payload"]["t"]})
+		Protocol.Msg.INPUT, Protocol.Msg.ACTION:
+			if state == ClientState.READY:
+				game_message.emit(peer_id, msg["type"], msg["payload"])
 		_:
-			pass  # clients may not send server-bound-only types; ignore
+			pass  # server-to-client types are ignored if a client sends them
 
 
 func _handle_hello(peer_id: int, hello: Dictionary) -> void:

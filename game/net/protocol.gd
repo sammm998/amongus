@@ -10,6 +10,20 @@ enum Msg {
 	ROSTER = 4,   ## s->c: players [{id, name}]
 	PING = 5,     ## c->s: t (client ms)
 	PONG = 6,     ## s->c: t (echo)
+	# --- Match (M2) ---
+	INPUT = 10,          ## c->s: movement/aim/buttons (see PlayerInput)
+	ACTION = 11,         ## c->s: discrete actions (vote, sabotage, chat, start...)
+	MATCH_INFO = 20,     ## s->c: phase, timers, player list (names/colours, no roles)
+	SNAPSHOT = 21,       ## s->c: world snapshot + private "me" block
+	ROLE = 22,           ## s->c: ONLY to its owner: own role + fellow traitors
+	TASKS = 23,          ## s->c: own task list
+	SABOTAGE_PANEL = 24, ## s->c: traitors only
+	WORLD = 25,          ## s->c: public world state (sabotage alerts, security, suspects)
+	EVENT = 26,          ## s->c: one-off events (shots, hits, alerts, denials)
+	MEETING = 27,        ## s->c: meeting state
+	MEETING_RESULT = 28, ## s->c: revive / suspects outcome
+	CHAT_MSG = 29,       ## s->c: chat line (already filtered by channel rules)
+	RESULTS = 30,        ## s->c: match end: winner + all roles revealed
 }
 
 const REJECT_VERSION_MISMATCH := "version_mismatch"
@@ -25,6 +39,19 @@ const SCHEMAS := {
 	Msg.ROSTER: {"players": TYPE_ARRAY},
 	Msg.PING: {"t": TYPE_INT},
 	Msg.PONG: {"t": TYPE_INT},
+	Msg.INPUT: {"seq": TYPE_INT, "move": TYPE_VECTOR2, "yaw": TYPE_FLOAT, "pitch": TYPE_FLOAT, "buttons": TYPE_INT, "slot": TYPE_INT, "aim": TYPE_VECTOR3, "view": TYPE_FLOAT, "dt": TYPE_FLOAT},
+	Msg.ACTION: {"kind": TYPE_STRING, "target": TYPE_INT, "text": TYPE_STRING},
+	Msg.MATCH_INFO: {"map": TYPE_STRING, "phase": TYPE_STRING, "time_left": TYPE_FLOAT, "elapsed": TYPE_FLOAT, "time_limit": TYPE_FLOAT, "players": TYPE_ARRAY, "host": TYPE_INT, "mode": TYPE_STRING},
+	Msg.SNAPSHOT: {"tick": TYPE_INT, "time": TYPE_FLOAT, "ack": TYPE_INT, "players": TYPE_ARRAY, "bodies": TYPE_ARRAY, "loot": TYPE_ARRAY, "me": TYPE_DICTIONARY},
+	Msg.ROLE: {"role": TYPE_STRING, "allies": TYPE_ARRAY},
+	Msg.TASKS: {"tasks": TYPE_ARRAY},
+	Msg.SABOTAGE_PANEL: {"panel": TYPE_DICTIONARY},
+	Msg.WORLD: {"security": TYPE_FLOAT, "sabotages": TYPE_ARRAY, "power": TYPE_BOOL, "suspects": TYPE_ARRAY, "generators": TYPE_ARRAY},
+	Msg.EVENT: {"kind": TYPE_STRING, "data": TYPE_DICTIONARY},
+	Msg.MEETING: {"phase": TYPE_STRING, "time_left": TYPE_FLOAT, "kind": TYPE_STRING, "victim": TYPE_INT, "reporter": TYPE_INT, "info": TYPE_DICTIONARY, "participants": TYPE_ARRAY, "voted": TYPE_ARRAY, "revive_vote": TYPE_BOOL},
+	Msg.MEETING_RESULT: {"victim": TYPE_INT, "revived": TYPE_BOOL, "had_vote": TYPE_BOOL, "tally": TYPE_DICTIONARY, "suspects": TYPE_ARRAY},
+	Msg.CHAT_MSG: {"from": TYPE_INT, "name": TYPE_STRING, "text": TYPE_STRING, "channel": TYPE_STRING},
+	Msg.RESULTS: {"winner": TYPE_STRING, "reason": TYPE_STRING, "players": TYPE_ARRAY, "timeline": TYPE_ARRAY},
 }
 
 const ROSTER_ENTRY := {"id": TYPE_INT, "name": TYPE_STRING}
