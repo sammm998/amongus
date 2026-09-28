@@ -1,3 +1,11 @@
 {
-  "tables": ["weapons", "combat", "lobby_defaults", "network", "input_bindings", "debug"]
+  "tables": [
+    "weapons",
+    "combat",
+    "lobby_defaults",
+    "network",
+    "input_bindings",
+    "debug",
+    "render_presets"
+  ]
 }

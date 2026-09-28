@@ -17,10 +17,10 @@ func _ready() -> void:
 	_build_environment()
 	_build_ground()
 	for i in SUIT_COLORS.size():
-		var a := AstronautPlaceholder.new()
+		var a := Astronaut.new()
 		a.suit_color = SUIT_COLORS[i][0]
 		a.accent_color = SUIT_COLORS[i][1]
-		a.idle_phase = i * 1.7
+		a.phase_offset = i * 1.7
 		a.position = Vector3(1.2 + i * 1.3, 0.35, -0.6 - i * 0.9)
 		a.rotation.y = deg_to_rad(-20.0 - i * 15.0)
 		add_child(a)

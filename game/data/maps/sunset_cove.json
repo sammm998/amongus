@@ -1,0 +1,183 @@
+{
+  "terrain": {
+    "sea_floor": -18,
+    "land_level": 2.6,
+    "beach_width": 14,
+    "shelf_width": 30,
+    "shelf_depth": 2.6,
+    "dropoff": 70,
+    "noise": {
+      "amplitude": 2.0,
+      "frequency": 0.018,
+      "seed": 7
+    },
+    "land": [
+      {
+        "x": -90,
+        "z": -60,
+        "rx": 100,
+        "rz": 150
+      },
+      {
+        "x": 90,
+        "z": -125,
+        "rx": 85,
+        "rz": 34
+      },
+      {
+        "x": 30,
+        "z": -118,
+        "rx": 50,
+        "rz": 40
+      },
+      {
+        "x": 25,
+        "z": -185,
+        "rx": 24,
+        "rz": 24
+      },
+      {
+        "x": 95,
+        "z": -38,
+        "rx": 12,
+        "rz": 10
+      },
+      {
+        "x": -20,
+        "z": -560,
+        "rx": 320,
+        "rz": 230
+      },
+      {
+        "x": -280,
+        "z": -400,
+        "rx": 170,
+        "rz": 140
+      },
+      {
+        "x": 230,
+        "z": -500,
+        "rx": 170,
+        "rz": 120
+      }
+    ],
+    "hills": [
+      {
+        "x": -34,
+        "z": 26,
+        "radius": 38,
+        "height": 9
+      },
+      {
+        "x": -85,
+        "z": -35,
+        "radius": 70,
+        "height": 26
+      },
+      {
+        "x": -140,
+        "z": -150,
+        "radius": 110,
+        "height": 46
+      },
+      {
+        "x": -60,
+        "z": -110,
+        "radius": 40,
+        "height": 18
+      },
+      {
+        "x": -4,
+        "z": -108,
+        "radius": 42,
+        "height": 6
+      },
+      {
+        "x": 25,
+        "z": -185,
+        "radius": 24,
+        "height": 14,
+        "coastal": true
+      },
+      {
+        "x": -20,
+        "z": -560,
+        "radius": 270,
+        "height": 175,
+        "shape": "cone",
+        "crater": 0.08
+      },
+      {
+        "x": -280,
+        "z": -400,
+        "radius": 150,
+        "height": 62
+      },
+      {
+        "x": 230,
+        "z": -500,
+        "radius": 140,
+        "height": 50
+      }
+    ],
+    "flats": [
+      {
+        "x": 88,
+        "z": -118,
+        "radius": 62,
+        "height": 3.6,
+        "blend": 0.25
+      },
+      {
+        "x": 2,
+        "z": -100,
+        "radius": 22,
+        "height": 8.0,
+        "blend": 0.5
+      }
+    ]
+  },
+  "near_terrain": {
+    "origin": [
+      -220,
+      -270
+    ],
+    "size": [
+      460,
+      360
+    ],
+    "res": 230
+  },
+  "far_terrain": {
+    "origin": [
+      -700,
+      -1000
+    ],
+    "size": [
+      1400,
+      730
+    ],
+    "res": 140
+  },
+  "sun_direction": [
+    0.72,
+    0.075,
+    -0.69
+  ],
+  "camera": {
+    "position": [
+      -16,
+      0,
+      6
+    ],
+    "yaw_degrees": -28,
+    "pitch_degrees": -24,
+    "fov": 60,
+    "height_above_ground": 13.0
+  },
+  "astronaut_area": [
+    -6,
+    0,
+    -4
+  ]
+}

@@ -15,7 +15,7 @@ Every external asset (models, textures, fonts, sounds, music, code libraries) mu
 |---|---|---|---|
 | `docs/art/reference.png` | Art direction reference (not shipped) | Supplied by the project owner | Owner's reference |
 
-All in-game geometry so far is built from Godot primitives in code.
+All in-game geometry so far is built procedurally in code (Godot primitives, SurfaceTool, FastNoiseLite). All shaders in `game/world/shaders` are original.
 
 ## Audio
 

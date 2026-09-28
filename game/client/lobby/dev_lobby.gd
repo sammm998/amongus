@@ -221,6 +221,9 @@ func _build_ui() -> void:
 	buttons.add_child(_join_button)
 	_leave_button = _button("LEAVE", _leave)
 	col.add_child(_leave_button)
+	col.add_child(_button("SUNSET COVE", func() -> void:
+		NetworkManager.stop_all()
+		get_tree().change_scene_to_file("res://world/sunset_cove/sunset_cove.tscn")))
 	if not (OS.has_feature("mobile") or OS.has_feature("web")):
 		col.add_child(_button("QUIT", func() -> void: _finish(0)))
 

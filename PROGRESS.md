@@ -1,6 +1,6 @@
 # PROGRESS
 
-## Current milestone: M0 — Foundation ✅ complete (next: M1 — Look development)
+## Current milestone: M2 — Core loop vertical slice (M0 ✅, M1 ✅)
 
 ### M0 plan
 1. Repo docs: `GAME_SPEC.md`, `CLAUDE.md`, `PROGRESS.md`, `ASSETS.md`; reference image at `docs/art/reference.png`.
@@ -28,14 +28,30 @@
 ### Test results (M0)
 - `./run_tests.sh`: 72 gdUnit4 cases, 0 failures; smoke test PASS over ENet and WebSocket (headless server + 2 headless clients in separate processes, both see a 2-player roster).
 - Screenshot: `docs/art/m0_dev_lobby.png` (xvfb, llvmpipe).
+- `mesa-vulkan-drivers` (lavapipe) is installed in the build container so screenshots use the real Forward+ renderer.
 
 ### How to try it
 - `godot --headless --path game -- --server` then two clients: `godot --path game -- --connect 127.0.0.1 --name Alice --profile a` and `... --name Bob --profile b`.
 - Or one client: press HOST LOCAL, then a second client presses JOIN.
 - Press ` (backquote) for the console; try `net`, `roster`, `fps`, `screenshot`.
 
-### Next (M1 — Look development "Sunset Cove")
-See GAME_SPEC §10.
+## M1 — Look development "Sunset Cove" ✅
+Plan: custom sky/water/foliage shaders, data-driven island height field, procedural props, animated primitive astronauts, render presets, side-by-side check vs the reference.
+
+Done:
+- Shaders (`world/shaders`): painterly sky (gradient, sun disc + glow, fbm clouds), stylized water (baked depth map → turquoise shallows/deep blue, refraction, shoreline foam bands, sun glints, stylized self-illumination), foliage wind sway, waterfall.
+- `HeightField` (pure): union-of-ellipses coastline with signed distance → beach → shallow shelf → drop-off, plus hills/cones/plateaus/flat pads; `TerrainMeshBuilder` (vertex-coloured sand/grass/jungle/rock/coral, heightmap collision).
+- Props via `MeshKit` (primitives merged into few surfaces): hangars with curved roofs, command buildings with warm windows, red/white lattice radio tower with dishes + beacon, pier with lanterns, lamp posts, airstrip, boat, small jets, rocks/sea stacks, palms/bushes/ferns (MultiMesh), volcano smoke particles.
+- `Astronaut`: chibi explorer from primitives with pivots and procedural idle/walk (bob, limb swing, lean) + downed pose; rim light and clearcoat helmet/visor.
+- `SunsetEnvironment` (ACES, glow, SSAO, fog, volumetric fog) — the visible sun disc is decoupled from the light elevation so flat ground stays bright at golden hour.
+- `data/render_presets.json` + `RenderPresets`: ultra/high/medium/mobile/low/battery_saver with individual toggles (glow, SSAO, SSIL, volumetric fog, cascades, shadow distance/size, MSAA, render scale, foliage sway, FPS cap).
+- Scene: `--scene cove` or SUNSET COVE in the dev lobby. F = fly camera, 1–6 = presets, Esc = back.
+- Tools: `tools/terrain_map.gd` (top-down layout map), `tools/side_by_side.gd` (comparison image), `--measure-fps S`, `--preset NAME`.
+- Screenshots: `docs/art/m1_cove.png`, `docs/art/m1_compare.png`.
+
+Measurements: this build machine only has a CPU rasteriser (llvmpipe, 4 cores): high 0.9 FPS, mobile 1.4 FPS at 1280×720 — not representative. **Needs measuring on a real mid-range GPU/phone** (run `godot --path game -- --scene cove --preset mobile --measure-fps 10`).
+
+Honest gap vs reference: our vista is less detailed (fewer props, simpler building shapes, faint clouds, volcano reads as a plain cone, smoke barely visible). Palette, lighting direction, water and characters are in the right family. Further art passes are planned in M5 (full island) and M7 (rigged characters).
 
 ## Decisions
 - **Godot 4.7.2** (latest stable at project start, 2026-09).
@@ -51,7 +67,7 @@ See GAME_SPEC §10.
 
 ## Known bugs / limitations
 - A server process runs one transport at a time (`--transport enet|ws`). Serving native and web clients from one match needs a multi-transport server (peer-id namespacing) — planned with M6 matchmaking.
-- Under `xvfb-run` the Vulkan driver lacks `VK_KHR_surface`, so screenshots fall back to the OpenGL Compatibility renderer. M1 look-dev must verify Forward+ features (volumetric fog, SSAO, SDFGI) on real hardware or get a working Vulkan surface in CI; compare carefully.
+- Screenshots need `mesa-vulkan-drivers` in the container (`apt-get install -y mesa-vulkan-drivers`); without it Godot falls back to the Compatibility renderer.
 - Debug console opens with a keyboard only; a touch gesture to open it comes with the touch HUD (M2).
 - Nakama backend not implemented yet (M6); `LocalBackend` is the active service.
 - The dev lobby is an M0 test front end; the real main menu with live 3D island comes in M6.

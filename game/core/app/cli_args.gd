@@ -17,6 +17,9 @@ const DEFAULTS := {
 	"expect_roster": -1,
 	"backend_dir": "",
 	"console": false,
+	"scene": "",
+	"preset": "",
+	"measure_fps": -1.0,
 }
 const BOOL_FLAGS := ["server", "host", "console"]
 const TRANSPORTS := ["enet", "ws"]
