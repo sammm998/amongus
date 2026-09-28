@@ -27,6 +27,8 @@ func _ready() -> void:
 	InputRouter.mode_changed.connect(_on_input_mode)
 	Backend.login_finished.connect(_on_login)
 	_on_input_mode(InputRouter.mode)
+	if Backend.service.is_authenticated() or not Backend.last_error.is_empty():
+		_on_login(Backend.service.is_authenticated())
 	_refresh()
 	var args := GameData.args
 	_expect_roster = args["expect_roster"]
@@ -252,7 +254,9 @@ func _build_ui() -> void:
 	right.add_child(fill)
 	_input_label = Label.new()
 	_input_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_input_label.add_theme_color_override("font_color", UITheme.TEXT_DIM)
+	_input_label.add_theme_color_override("font_color", UITheme.TEXT)
+	_input_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.1, 0.9))
+	_input_label.add_theme_constant_override("outline_size", 6)
 	_input_label.add_theme_font_size_override("font_size", 16)
 	right.add_child(_input_label)
 

@@ -39,7 +39,7 @@ func _build() -> void:
 
 	_part(_capsule(0.32, 0.9), suit, Vector3(0, 0.75, 0))                        # torso
 	_part(_sphere(0.42), helmet, Vector3(0, 1.45, 0))                              # helmet
-	_part(_sphere(0.3), visor, Vector3(0, 1.47, 0.2), Vector3(1.25, 0.8, 0.7))     # visor
+	_part(_sphere(0.3), visor, Vector3(0, 1.47, 0.2), Vector3(1.15, 0.85, 0.85))    # visor
 	_part(_box(Vector3(0.5, 0.55, 0.28)), accent, Vector3(0, 0.9, -0.36))         # backpack
 	_part(_box(Vector3(0.3, 0.1, 0.06)), suit, Vector3(0, 1.0, -0.51))            # backpack panel
 	for side: float in [-1.0, 1.0]:

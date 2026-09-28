@@ -72,7 +72,7 @@ func read_storage(collection: String, key: String) -> BackendResult:
 	var record: Variant = _read_json(_record_path(collection, key), null)
 	if not (record is Dictionary):
 		return BackendResult.failure(BackendResult.NOT_FOUND)
-	return BackendResult.success({"value": record["value"], "version": str(record["version"])})
+	return BackendResult.success({"value": record["value"], "version": str(int(record["version"]))})
 
 
 func write_storage(collection: String, key: String, value: Dictionary, expected_version: String = "") -> BackendResult:
