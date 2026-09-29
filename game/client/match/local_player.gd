@@ -100,13 +100,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		# Capturing the pointer (and browsers' pointer lock) can emit one huge
 		# jump; ignore implausible deltas so the camera doesn't flip.
-		if event.relative.length() > 250.0 or Time.get_ticks_msec() - _captured_at < 150:
+		if event.relative.length() > 400.0 or Time.get_ticks_msec() - _captured_at < 100:
 			return
 		var sens := mouse_sensitivity * (0.6 if aiming else 1.0)
 		yaw -= event.relative.x * sens
 		pitch = clampf(pitch - event.relative.y * sens, -1.3, 0.9)
-	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED and InputRouter.mode == InputClassifier.Mode.DESKTOP:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	elif event is InputEventMouseButton and event.pressed and event.device != InputEvent.DEVICE_ID_EMULATION:
+		# Any real mouse click locks the pointer for 360° mouse look. Browsers
+		# only allow this from a click, so it is re-requested on every click.
+		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		_captured_at = Time.get_ticks_msec()
 		get_viewport().set_input_as_handled()
 	for i in 5:

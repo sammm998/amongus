@@ -10,11 +10,15 @@ var _t := 0.0
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Purely visual: never swallow clicks (they are needed to lock the mouse).
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_black = ColorRect.new()
 	_black.color = Color.BLACK
 	_black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_black.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_black)
 	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	_card = VBoxContainer.new()

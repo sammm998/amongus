@@ -63,8 +63,7 @@ func _ready() -> void:
 	if NetworkManager.auto_start_requested:
 		NetworkManager.auto_start_requested = false
 		NetworkManager.send_action("start")
-	if InputRouter.mode == InputClassifier.Mode.DESKTOP and GameData.args["screenshot"].is_empty():
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# The pointer is locked on the first click (browsers require a user gesture).
 
 
 func _exit_tree() -> void:

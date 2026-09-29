@@ -32,6 +32,7 @@ var _info_panel: PanelContainer
 var _info_label: Label
 var _info_time := 0.0
 var _comms_button: Button
+var _look_hint: Label
 var _hud: Control
 var _objective: Label
 var _security_bar: ProgressBar
@@ -208,6 +209,12 @@ func _build_hud() -> void:
 	_slots_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	br.add_child(_slots_label)
 	# Centre: crosshair + prompt.
+	_look_hint = UIKit.label("CLICK TO LOOK AROUND — move the mouse to turn 360°  ·  Esc frees the mouse", 20, UITheme.CYAN)
+	_look_hint.set_anchors_preset(Control.PRESET_CENTER)
+	_look_hint.position = Vector2(-420, -120)
+	_look_hint.custom_minimum_size = Vector2(840, 0)
+	_look_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hud.add_child(_look_hint)
 	_crosshair = Control.new()
 	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -469,6 +476,8 @@ func update_hud(delta: float, local_pos: Vector3, heading: float, dark_here: boo
 	_update_weapon(me)
 	_update_prompt(me)
 	_update_inspect(me)
+	_look_hint.visible = InputRouter.mode == InputClassifier.Mode.DESKTOP and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED \
+		and not is_blocking_input() and phase in ["WAITING", "COUNTDOWN", "ACTIVE", "RESUMING"] and state == Vitals.State.ALIVE
 	_info_time -= delta
 	_info_panel.visible = _info_time > 0.0
 	_comms_button.visible = touch_mode and in_match and state == Vitals.State.ALIVE
