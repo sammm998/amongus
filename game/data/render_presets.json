@@ -1,11 +1,13 @@
 {
   "default_desktop": "high",
   "default_mobile": "mobile",
+  "default_web": "web",
   "presets": {
     "ultra":  { "glow": true, "ssao": true, "ssil": true,  "volumetric_fog": true,  "sdfgi": false, "shadow_cascades": 4, "shadow_distance": 400.0, "shadow_size": 4096, "msaa": 2, "render_scale": 1.0,  "foliage_sway": true, "max_fps": 0 },
     "high":   { "glow": true, "ssao": true, "ssil": false, "volumetric_fog": true,  "sdfgi": false, "shadow_cascades": 4, "shadow_distance": 300.0, "shadow_size": 4096, "msaa": 1, "render_scale": 1.0,  "foliage_sway": true, "max_fps": 0 },
     "medium": { "glow": true, "ssao": false, "ssil": false, "volumetric_fog": false, "sdfgi": false, "shadow_cascades": 3, "shadow_distance": 200.0, "shadow_size": 2048, "msaa": 1, "render_scale": 1.0,  "foliage_sway": true, "max_fps": 0 },
     "mobile": { "glow": true, "ssao": false, "ssil": false, "volumetric_fog": false, "sdfgi": false, "shadow_cascades": 2, "shadow_distance": 120.0, "shadow_size": 2048, "msaa": 0, "render_scale": 0.85, "foliage_sway": true, "max_fps": 60 },
+    "web":    { "glow": true, "ssao": false, "ssil": false, "volumetric_fog": false, "sdfgi": false, "shadow_cascades": 2, "shadow_distance": 110.0, "shadow_size": 2048, "msaa": 0, "render_scale": 1.0, "foliage_sway": true, "max_fps": 0 },
     "low":    { "glow": false, "ssao": false, "ssil": false, "volumetric_fog": false, "sdfgi": false, "shadow_cascades": 1, "shadow_distance": 80.0,  "shadow_size": 1024, "msaa": 0, "render_scale": 0.75, "foliage_sway": false, "max_fps": 60 },
     "battery_saver": { "glow": false, "ssao": false, "ssil": false, "volumetric_fog": false, "sdfgi": false, "shadow_cascades": 1, "shadow_distance": 60.0, "shadow_size": 1024, "msaa": 0, "render_scale": 0.65, "foliage_sway": false, "max_fps": 30 }
   }

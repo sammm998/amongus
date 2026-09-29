@@ -135,6 +135,8 @@ func _reset_match_state() -> void:
 	_doors_locked.clear()
 	loot.clear()
 	for l: Dictionary in map.raw.get("loot", []):
+		if int(combat_cfg.get("shot_budget", -1)) >= 0 and items_cfg["ammo_pickups"].has(l["item"]):
+			continue  # shots are a fixed match budget: ammo pickups would be fake
 		_spawn_loot(l["item"], l.get("rarity", "standard"), int(l.get("amount", 0)), map.ground_point(float(l["x"]), float(l["z"])))
 
 
@@ -416,6 +418,7 @@ func _spawn_all() -> void:
 		p.body.velocity = Vector3.ZERO
 		p.vitals.revive(float(combat_cfg["max_health"]), 0.0, 0.0)
 		p.inventory.reset_loadout(weapons_by_id[interaction_cfg["start_weapon"]], int(interaction_cfg["start_light_ammo"]))
+		p.inventory.shots_left = int(combat_cfg.get("shot_budget", -1))
 		i += 1
 	if bool(drop_cfg.get("enabled", false)) and map.raw.has("drop"):
 		_start_drop()
@@ -561,6 +564,8 @@ func _apply_input(p: ServerPlayer, inp: PlayerInput) -> void:
 	if inp.has(PlayerInput.FIRE):
 		if inv.active == Inventory.HEALING:
 			_start_healing(p)
+		elif inv.active == Inventory.UTILITY:
+			_try_knife(p)
 		elif w != null:
 			_try_fire(p, w, inp)
 
@@ -603,10 +608,40 @@ func _cancel_healing(p: ServerPlayer) -> void:
 
 # ---------------------------------------------------------------- combat ---
 
+## Knife: closest living player in the cone in front; from behind it downs.
+func _try_knife(p: ServerPlayer) -> void:
+	var cfg: Dictionary = combat_cfg["knife"]
+	if now < p.inventory.knife_ready_at:
+		return
+	p.inventory.knife_ready_at = now + float(cfg["cooldown_seconds"])
+	_cancel_healing(p)
+	var fwd := Vector3(-sin(p.yaw), 0.0, -cos(p.yaw))
+	var best: ServerPlayer = null
+	var best_res := {}
+	var best_d := INF
+	for q: ServerPlayer in players.values():
+		if q.id == p.id or q.spectator or not q.is_living() or q.air != PlayerMotor.Air.NONE:
+			continue
+		var res := Melee.stab(p.feet(), fwd, q.feet(), Vector3(-sin(q.yaw), 0.0, -cos(q.yaw)), cfg)
+		var d := p.feet().distance_to(q.feet())
+		if res["hit"] and d < best_d:
+			best = q
+			best_res = res
+			best_d = d
+	if best == null:
+		return
+	_damage(best, Melee.damage(best_res, cfg) * float(settings["friendly_fire_multiplier"]), p, "knife", best_d, p.eye(movement_cfg), false)
+	if best_res["backstab"]:
+		_timeline("%s was stabbed from behind" % best.name)
+
+
 func _try_fire(p: ServerPlayer, w: WeaponInstance, inp: PlayerInput) -> void:
+	if p.inventory.shots_left == 0 or not w.can_fire(now):
+		return
 	var pellets := w.fire(now)
 	if pellets <= 0:
 		return
+	p.inventory.take_shot()
 	_cancel_healing(p)
 	p.stats["shots"] += 1
 	var origin := p.eye(movement_cfg)

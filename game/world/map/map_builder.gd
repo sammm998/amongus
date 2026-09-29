@@ -211,6 +211,9 @@ static func _building(map: MapData, b: Dictionary, statics: StaticBody3D, kit: M
 			var t := (i + 0.5) / count
 			l.position = Vector3(cx - w * 0.5 + w * t, base + h - 0.8, cz)
 			l.shadow_enabled = false
+			l.distance_fade_enabled = true
+			l.distance_fade_begin = 50.0
+			l.distance_fade_length = 15.0
 			root.add_child(l)
 			if not lights.has(district):
 				lights[district] = []
@@ -440,6 +443,7 @@ static func _roads(map: MapData, root: Node3D, lights: Dictionary) -> void:
 					var district := map.district_at(lamp.position)
 					for child in lamp.get_children():
 						if child is Light3D:
+							child.set_meta("street", true)
 							if not lights.has(district):
 								lights[district] = []
 							lights[district].append(child)
@@ -490,23 +494,35 @@ static func _vegetation(map: MapData, root: Node3D) -> void:
 			xforms[bush_kind].append(xf)
 		elif inland > 2.0 and r < 0.65:
 			xforms[fern_kind].append(xf)
+	# One MultiMesh per kind per 128 m cell: off-screen cells are culled and
+	# visibility ranges work per cell (a single island-wide MultiMesh has one AABB).
 	for k in kinds.size():
-		var list: Array = xforms[k]
-		if list.is_empty():
-			continue
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = kinds[k]
-		mm.instance_count = list.size()
-		for i in list.size():
-			mm.set_instance_transform(i, list[i])
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		# Palms stay visible far away (landmarks); ground cover fades early.
-		mmi.visibility_range_end = 700.0 if k < bush_kind else 160.0
-		if k >= bush_kind:
-			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(mmi)
+		var cells := {}
+		for xf: Transform3D in xforms[k]:
+			var key := Vector2i(floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL))
+			if not cells.has(key):
+				cells[key] = []
+			cells[key].append(xf)
+		for key: Vector2i in cells:
+			var list: Array = cells[key]
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = kinds[k]
+			mm.instance_count = list.size()
+			for i in list.size():
+				mm.set_instance_transform(i, list[i])
+			var mmi := MultiMeshInstance3D.new()
+			mmi.multimesh = mm
+			# Palms stay visible further (landmarks); ground cover fades early.
+			mmi.visibility_range_end = 420.0 if k < bush_kind else 110.0
+			mmi.visibility_range_end_margin = 20.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
+			if k >= bush_kind:
+				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			root.add_child(mmi)
+
+
+const VEG_CELL := 128.0
 
 
 ## Circles (x, z, r) where vegetation must not grow: buildings, props, stations, roads.

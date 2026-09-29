@@ -338,6 +338,15 @@ func _fight(inp: PlayerInput, tid: int, visible: Array, dt: float) -> PlayerInpu
 	inp.aim_point = aim
 	inp.view_time = _m().now
 	_pick_weapon(inp)
+	# Out of gun shots: close in and use the knife.
+	var inv: Dictionary = me.get("inv", {})
+	if int(inv.get("shots", -1)) == 0:
+		inp.slot = Inventory.UTILITY if int(inv.get("active", -1)) != Inventory.UTILITY else -1
+		inp.buttons &= ~PlayerInput.AIM
+		if dist > 1.6:
+			inp.move = Vector2(0.0, 1.0)
+			inp.buttons |= PlayerInput.SPRINT
+		inp.buttons = (inp.buttons | PlayerInput.FIRE) if dist <= 2.2 and facing > 0.8 else (inp.buttons & ~PlayerInput.FIRE)
 	inp.yaw = yaw
 	inp.pitch = pitch
 	# Traitors leave downed victims most of the time; sometimes they finish.

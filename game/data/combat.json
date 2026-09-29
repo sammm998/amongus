@@ -2,20 +2,74 @@
   "max_health": 100.0,
   "max_shield": 50.0,
   "headshot_multiplier": 1.5,
-  "ttk_band_default": [1.5, 3.0],
-  "max_rarity_damage_bonus": 0.10,
+  "ttk_band_default": [
+    1.5,
+    3.0
+  ],
+  "max_rarity_damage_bonus": 0.1,
   "rarities": {
-    "standard":  { "order": 0, "display_name": "Standard",  "color": "#e6e8ec", "damage_multiplier": 1.00, "handling_multiplier": 1.00 },
-    "advanced":  { "order": 1, "display_name": "Advanced",  "color": "#2ec4b6", "damage_multiplier": 1.03, "handling_multiplier": 1.04 },
-    "elite":     { "order": 2, "display_name": "Elite",     "color": "#9b5de5", "damage_multiplier": 1.06, "handling_multiplier": 1.08 },
-    "prototype": { "order": 3, "display_name": "Prototype", "color": "#ff6f61", "damage_multiplier": 1.10, "handling_multiplier": 1.12 }
+    "standard": {
+      "order": 0,
+      "display_name": "Standard",
+      "color": "#e6e8ec",
+      "damage_multiplier": 1.0,
+      "handling_multiplier": 1.0
+    },
+    "advanced": {
+      "order": 1,
+      "display_name": "Advanced",
+      "color": "#2ec4b6",
+      "damage_multiplier": 1.03,
+      "handling_multiplier": 1.04
+    },
+    "elite": {
+      "order": 2,
+      "display_name": "Elite",
+      "color": "#9b5de5",
+      "damage_multiplier": 1.06,
+      "handling_multiplier": 1.08
+    },
+    "prototype": {
+      "order": 3,
+      "display_name": "Prototype",
+      "color": "#ff6f61",
+      "damage_multiplier": 1.1,
+      "handling_multiplier": 1.12
+    }
   },
   "ammo_types": {
-    "light":        { "display_name": "Light",        "carry_limit": 180 },
-    "medium":       { "display_name": "Medium",       "carry_limit": 150 },
-    "heavy":        { "display_name": "Heavy",        "carry_limit": 40 },
-    "shells":       { "display_name": "Shells",       "carry_limit": 30 },
-    "energy_cells": { "display_name": "Energy Cells", "carry_limit": 9 },
-    "explosive":    { "display_name": "Explosive",    "carry_limit": 12 }
+    "light": {
+      "display_name": "Light",
+      "carry_limit": 180
+    },
+    "medium": {
+      "display_name": "Medium",
+      "carry_limit": 150
+    },
+    "heavy": {
+      "display_name": "Heavy",
+      "carry_limit": 40
+    },
+    "shells": {
+      "display_name": "Shells",
+      "carry_limit": 30
+    },
+    "energy_cells": {
+      "display_name": "Energy Cells",
+      "carry_limit": 9
+    },
+    "explosive": {
+      "display_name": "Explosive",
+      "carry_limit": 12
+    }
+  },
+  "shot_budget": 3,
+  "knife": {
+    "range_m": 2.3,
+    "cone_degrees": 60.0,
+    "front_damage": 20.0,
+    "backstab_damage": 1000.0,
+    "backstab_cone_degrees": 75.0,
+    "cooldown_seconds": 0.8
   }
 }

@@ -75,6 +75,9 @@ static func build(p: Dictionary) -> Dictionary:
 	sun.shadow_enabled = true
 	sun.shadow_blur = float(light_cfg["shadow_blur"])
 	sun.directional_shadow_max_distance = 300.0
+	# Generous biases: no striped "shadow acne" on flat roofs/ground (web renderer too).
+	sun.shadow_bias = 0.08
+	sun.shadow_normal_bias = 2.5
 	var light_dir := sun_vector(float(p["sun_azimuth_degrees"]), float(p["sun_elevation_degrees"]))
 	sun.basis = Basis.looking_at(-light_dir, Vector3.UP)
 	return {"environment": world_env, "sun": sun, "sky_material": sky_mat, "preset": p, "sky_sun": sky_sun}

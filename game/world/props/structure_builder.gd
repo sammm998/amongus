@@ -187,4 +187,7 @@ static func _warm_light(pos: Vector3, light_range: float, energy: float) -> Omni
 	l.light_energy = energy
 	l.omni_range = light_range
 	l.position = pos
+	l.distance_fade_enabled = true
+	l.distance_fade_begin = 60.0
+	l.distance_fade_length = 20.0
 	return l

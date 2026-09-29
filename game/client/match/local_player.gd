@@ -132,7 +132,7 @@ func _next_slot() -> int:
 	var active: int = inv.get("active", Inventory.SIDEARM)
 	for step in range(1, 5):
 		var s := (active + step) % 5
-		if s == Inventory.HEALING or (s < ws.size() and not ws[s].is_empty()):
+		if s == Inventory.HEALING or s == Inventory.UTILITY or (s < ws.size() and not ws[s].is_empty()):
 			return s
 	return active
 

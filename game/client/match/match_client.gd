@@ -30,6 +30,7 @@ func _ready() -> void:
 	map = MapData.load_map(map_id)
 	var tod := EnvironmentRig.preset(str(game.info.get("time_of_day", "day")))
 	var rig := EnvironmentRig.build(tod)
+	_lamps_on = bool(tod.get("lamps", true))
 	add_child(rig["environment"])
 	add_child(rig["sun"])
 	world = MapBuilder.build(map, true)
@@ -156,7 +157,24 @@ func _update_drop() -> void:
 	hud.set_drop_hint(hint)
 
 
+var _perf_t := 0.0
+
+
+## `--measure-fps N`: print CPU frame costs every N seconds (profiling aid).
+func _report_perf(delta: float) -> void:
+	var every: float = GameData.args["measure_fps"]
+	if every <= 0.0:
+		return
+	_perf_t += delta
+	if _perf_t >= every:
+		_perf_t = 0.0
+		print("PERF fps=%d process_ms=%.1f physics_ms=%.1f objects=%d phase=%s air=%d" % [Engine.get_frames_per_second(),
+			Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+			Performance.get_monitor(Performance.OBJECT_COUNT), game.phase, local.air])
+
+
 func _process(delta: float) -> void:
+	_report_perf(delta)
 	var render_time := game.server_now(NetworkManager.local_time()) - INTERP_DELAY
 	var sampled := game.sample_players(render_time)
 	var latest := game.latest()
@@ -259,11 +277,16 @@ func _update_tags(delta: float) -> void:
 		a.update_tag(eye, max_d, _los_cache.get(a.player_id, false) and a.avatar.visible, game.is_suspect(a.player_id))
 
 
+var _lamps_on := true
+
+
+## Street/building lamps only at dusk and night (each light is an extra render
+## pass in the web renderer), and never in a blacked-out district.
 func _update_lights() -> void:
 	for district: String in district_lights:
 		var on := not game.district_dark(district)
 		for l: Light3D in district_lights[district]:
-			l.visible = on
+			l.visible = on and (_lamps_on or not l.has_meta("street"))
 
 
 func _update_loot(list: Array, delta: float) -> void:

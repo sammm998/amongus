@@ -5,7 +5,9 @@ extends RefCounted
 
 
 static func default_name(table: Dictionary) -> String:
-	return table["default_mobile"] if OS.has_feature("mobile") or OS.has_feature("web") else table["default_desktop"]
+	if OS.has_feature("web"):
+		return table.get("default_web", table["default_mobile"])
+	return table["default_mobile"] if OS.has_feature("mobile") else table["default_desktop"]
 
 
 static func apply(preset: Dictionary, env: Environment, sun: DirectionalLight3D, viewport: Viewport) -> void:

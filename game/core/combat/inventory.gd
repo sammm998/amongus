@@ -6,7 +6,7 @@ extends RefCounted
 const PRIMARY := 0
 const SECONDARY := 1
 const SIDEARM := 2
-const UTILITY := 3
+const UTILITY := 3  # the knife
 const HEALING := 4
 const SLOT_NAMES := ["primary", "secondary", "sidearm", "utility", "healing"]
 
@@ -14,6 +14,9 @@ var weapons: Array = [null, null, null]  # WeaponInstance per weapon slot
 var ammo: Dictionary = {}
 var consumables: Dictionary = {}          # item id -> count
 var active := SIDEARM
+## Gun shots left for the whole match (all guns share it); -1 = unlimited.
+var shots_left := -1
+var knife_ready_at := 0.0
 var carry_limits: Dictionary = {}
 var consumable_defs: Dictionary = {}
 
@@ -95,8 +98,10 @@ func use_consumable(item: String) -> Dictionary:
 
 
 func select(slot: int) -> bool:
-	if slot == HEALING:
-		active = HEALING
+	if slot == HEALING or slot == UTILITY:
+		if active < weapons.size() and weapons[active] != null:
+			weapons[active].cancel_reload()
+		active = slot
 		return true
 	if slot < 0 or slot > SIDEARM or weapons[slot] == null:
 		return false
@@ -120,4 +125,13 @@ func view() -> Dictionary:
 	var ws: Array = []
 	for w: WeaponInstance in weapons:
 		ws.append([] if w == null else [w.id, w.rarity, w.mag])
-	return {"weapons": ws, "ammo": ammo.duplicate(), "items": consumables.duplicate(), "active": active}
+	return {"weapons": ws, "ammo": ammo.duplicate(), "items": consumables.duplicate(), "active": active, "shots": shots_left}
+
+
+## Consumes one gun shot from the match budget. False when none are left.
+func take_shot() -> bool:
+	if shots_left == 0:
+		return false
+	if shots_left > 0:
+		shots_left -= 1
+	return true

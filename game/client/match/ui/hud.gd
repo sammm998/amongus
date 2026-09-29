@@ -531,19 +531,35 @@ func _update_weapon(me: Dictionary) -> void:
 		for k: String in items:
 			parts.append("%s ×%d" % [k.replace("_", " ").capitalize(), items[k]])
 		_ammo_label.text = ", ".join(parts) if not parts.is_empty() else "—"
+	elif active == Inventory.UTILITY:
+		_weapon_label.text = "KNIFE — stab from behind to take someone down"
+		_weapon_label.add_theme_color_override("font_color", UITheme.AMBER)
+		_ammo_label.text = _shots_text(inv)
 	elif active < ws.size() and not ws[active].is_empty():
 		var w: Array = ws[active]
 		var def: Dictionary = weapons[w[0]]
 		var rarity: Dictionary = GameData.table("combat")["rarities"][w[1]]
 		_weapon_label.text = "%s · %s" % [def["display_name"], rarity["display_name"]]
 		_weapon_label.add_theme_color_override("font_color", Color(rarity["color"]))
-		_ammo_label.text = "%d / %d%s" % [w[2], int(inv["ammo"].get(def["ammo_type"], 0)), "  RELOADING" if me.get("reloading", false) else ""]
+		if int(inv.get("shots", -1)) >= 0:
+			_ammo_label.text = _shots_text(inv)
+		else:
+			_ammo_label.text = "%d / %d%s" % [w[2], int(inv["ammo"].get(def["ammo_type"], 0)), "  RELOADING" if me.get("reloading", false) else ""]
 	var names := PackedStringArray()
 	for i in 3:
 		var label := "%d:%s" % [i + 1, weapons[ws[i][0]]["display_name"] if not ws[i].is_empty() else "—"]
 		names.append("[%s]" % label if i == active else label)
+	names.append("4:Knife" if active != Inventory.UTILITY else "[4:Knife]")
 	names.append("5:Heal" if active != Inventory.HEALING else "[5:Heal]")
 	_slots_label.text = "  ".join(names)
+
+
+func _shots_text(inv: Dictionary) -> String:
+	var shots := int(inv.get("shots", -1))
+	if shots < 0:
+		return ""
+	var budget := int(GameData.table("combat").get("shot_budget", 3))
+	return "SHOTS %d / %d%s" % [shots, budget, "  — use the KNIFE (4)" if shots == 0 else ""]
 
 
 func _update_prompt(me: Dictionary) -> void:

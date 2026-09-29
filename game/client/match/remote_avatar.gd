@@ -110,6 +110,7 @@ func apply(pos: Vector3, yaw: float, p_state: int, flags: int, delta: float) -> 
 	_canopy.rotation.y = avatar.rotation.y
 	_flash_time = maxf(0.0, _flash_time - delta)
 	_flash.light_energy = 6.0 * _flash_time / 0.06
+	_flash.visible = _flash_time > 0.0
 
 
 const EMOTE_ICONS := {"wave": "* waves *", "point": "* points *", "shrug": "* shrugs *", "cheer": "\\o/", "facepalm": "* facepalm *", "dance": "* dances *"}

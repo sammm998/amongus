@@ -35,6 +35,7 @@ func _init_from_raw() -> void:
 		var p: Array = wps[name]
 		var pos := ground_point(float(p[0]), float(p[1]))
 		waypoints[name] = pos
+		_bucket_add(name, pos)
 		var id := _wp_names.size()
 		_wp_names.append(name)
 		_wp_ids[name] = id
@@ -98,6 +99,7 @@ func add_waypoint(name: String, pos: Vector3) -> void:
 	if _wp_ids.has(name):
 		return
 	waypoints[name] = pos
+	_bucket_add(name, pos)
 	var id := _wp_names.size()
 	_wp_names.append(name)
 	_wp_ids[name] = id
@@ -191,11 +193,34 @@ func path(from: Vector3, to: Vector3) -> PackedVector3Array:
 	return out
 
 
-## Waypoint names sorted by distance (closest first).
+const WP_BUCKET := 32.0
+var _wp_buckets: Dictionary = {}  # Vector2i -> Array[String]
+
+
+func _bucket_add(name: String, pos: Vector3) -> void:
+	var key := Vector2i(floori(pos.x / WP_BUCKET), floori(pos.z / WP_BUCKET))
+	if not _wp_buckets.has(key):
+		_wp_buckets[key] = []
+	_wp_buckets[key].append(name)
+
+
+## Waypoint names sorted by distance (closest first). Searches spatial buckets
+## in growing rings so big maps stay cheap.
 func nearest_waypoints(pos: Vector3, count: int) -> Array:
 	var list: Array = []
-	for name: String in waypoints:
-		list.append([pos.distance_squared_to(waypoints[name]), name])
+	var c := Vector2i(floori(pos.x / WP_BUCKET), floori(pos.z / WP_BUCKET))
+	var ring := 0
+	while ring < 64:
+		for bz in range(c.y - ring, c.y + ring + 1):
+			for bx in range(c.x - ring, c.x + ring + 1):
+				if maxi(absi(bx - c.x), absi(bz - c.y)) != ring:
+					continue
+				for name: String in _wp_buckets.get(Vector2i(bx, bz), []):
+					list.append([pos.distance_squared_to(waypoints[name]), name])
+		# Everything within `ring` buckets is found; one more ring guarantees order.
+		if list.size() >= count and ring >= 1:
+			break
+		ring += 1
 	list.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	return list.slice(0, count).map(func(e: Array) -> String: return e[1])
 
