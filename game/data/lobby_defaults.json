@@ -19,7 +19,7 @@
     "revive_vote_seconds": 20.0,
     "suspect_vote_seconds": 15.0,
     "revive_tie_revives": false,
-    "suspect_threshold": 0.40,
+    "suspect_threshold": 0.4,
     "suspect_marker_seconds": 120.0
   },
   "emergency_meeting_uses_per_player": 1,
@@ -28,6 +28,6 @@
   "friendly_fire_multiplier": 1.0,
   "name_display_distance": 30.0,
   "cameras_enabled": true,
-  "time_of_day": "sunset",
+  "time_of_day": "day",
   "weather": "sunny"
 }

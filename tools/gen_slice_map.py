@@ -18,9 +18,9 @@ terrain = {
         {"x": 70, "z": 55, "radius": 40, "height": 6},
     ],
     "flats": [
-        {"x": 0, "z": -18, "radius": 52, "height": 3.0, "blend": 0.35},
-        {"x": -115, "z": -18, "radius": 34, "height": 2.8, "blend": 0.35},
-        {"x": 148, "z": -22, "radius": 38, "height": 2.6, "blend": 0.3},
+        {"x": 0, "z": -18, "radius": 52, "height": 3.0, "blend": 0.35, "paved": True},
+        {"x": -115, "z": -18, "radius": 34, "height": 2.8, "blend": 0.35, "paved": True},
+        {"x": 148, "z": -22, "radius": 38, "height": 2.6, "blend": 0.3, "paved": True},
         {"x": 0, "z": 40, "radius": 16, "height": 2.7, "blend": 0.6},
     ],
 }

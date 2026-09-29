@@ -16,6 +16,7 @@
     "modes",
     "items",
     "cosmetics",
-    "info_systems"
+    "info_systems",
+    "time_of_day"
   ]
 }

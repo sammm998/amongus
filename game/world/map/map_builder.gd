@@ -61,6 +61,11 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	root.set_meta("camera_points", camera_points)
 	root.set_meta("doors", doors)
 	if visuals:
+		# Paved plazas under facilities (flat pads marked "paved").
+		for f: Dictionary in map.raw["terrain"].get("flats", []):
+			if f.get("paved", false):
+				var fr := float(f["radius"]) * (1.0 - float(f.get("blend", 0.3)) * 0.9)
+				kit.add_cylinder(Transform3D(Basis(), Vector3(float(f["x"]), float(f["height"]) + 0.03, float(f["z"]))), fr, fr, 0.06, Color(0.52, 0.52, 0.5), 40)
 		root.add_child(kit.to_instance())
 		_terrain_visuals(map, root)
 		_roads(map, root, district_lights)

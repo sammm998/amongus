@@ -153,6 +153,7 @@ static func material(slot: String) -> Material:
 		return _materials[slot]
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
 	match slot:
 		SLOT_GLOSS:
 			m.roughness = 0.3

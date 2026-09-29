@@ -28,12 +28,23 @@ func _ready() -> void:
 	game = NetworkManager.game
 	var map_id: String = game.info.get("map", "slice")
 	map = MapData.load_map(map_id)
-	var rig := SunsetEnvironment.build(Vector3(0.72, 0.075, -0.69))
+	var tod := EnvironmentRig.preset(str(game.info.get("time_of_day", "day")))
+	var rig := EnvironmentRig.build(tod)
 	add_child(rig["environment"])
 	add_child(rig["sun"])
 	world = MapBuilder.build(map, true)
 	add_child(world)
 	district_lights = world.get_meta("district_lights")
+	var sea: MeshInstance3D = world.get_node_or_null("Sea")
+	if sea != null:
+		var wm: ShaderMaterial = sea.material_override
+		wm.set_shader_parameter("sun_direction", rig["sky_sun"])
+		wm.set_shader_parameter("body_glow", float(tod["water_glow"]))
+		if str(game.info.get("time_of_day", "day")) != "sunset":
+			wm.set_shader_parameter("shallow_color", Color(0.36, 0.8, 0.76))
+			wm.set_shader_parameter("mid_color", Color(0.05, 0.48, 0.64))
+			wm.set_shader_parameter("deep_color", Color(0.03, 0.2, 0.4))
+			wm.set_shader_parameter("glint_color", Color(1.0, 0.98, 0.92))
 	var presets: Dictionary = GameData.table("render_presets")
 	var preset: String = GameData.args["preset"] if not String(GameData.args["preset"]).is_empty() else RenderPresets.default_name(presets)
 	RenderPresets.apply(presets["presets"][preset], rig["environment"].environment, rig["sun"], get_viewport())

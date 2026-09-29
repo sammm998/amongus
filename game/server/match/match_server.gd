@@ -1282,7 +1282,7 @@ func _send_match_info_to_all() -> void:
 	for p: ServerPlayer in players.values():
 		list.append({"id": p.id, "name": p.name, "color": p.color, "bot": p.is_bot})
 	var payload := {"map": map_id, "phase": phases.phase_name(), "time_left": maxf(0.0, phases.time_left), "elapsed": phases.elapsed,
-		"time_limit": float(settings["match_time_limit_seconds"]), "players": list, "host": host_id, "mode": mode}
+		"time_limit": float(settings["match_time_limit_seconds"]), "players": list, "host": host_id, "mode": mode, "time_of_day": str(settings.get("time_of_day", "day"))}
 	broadcast(Protocol.Msg.MATCH_INFO, payload)
 
 

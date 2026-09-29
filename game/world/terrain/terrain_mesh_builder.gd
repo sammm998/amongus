@@ -3,10 +3,10 @@ extends RefCounted
 ## Builds vertex-coloured terrain meshes (and collision) from a HeightField.
 
 const SEABED := Color(0.86, 0.84, 0.66)
-const SAND := Color(0.98, 0.91, 0.76)
-const WET_SAND := Color(0.86, 0.76, 0.6)
-const GRASS := Color(0.34, 0.6, 0.2)
-const JUNGLE := Color(0.13, 0.38, 0.12)
+const SAND := Color(0.9, 0.84, 0.68)
+const WET_SAND := Color(0.74, 0.66, 0.52)
+const GRASS := Color(0.27, 0.44, 0.16)
+const JUNGLE := Color(0.13, 0.27, 0.1)
 const ROCK := Color(0.22, 0.2, 0.21)
 const CORAL_A := Color(0.9, 0.45, 0.5)
 const CORAL_B := Color(0.35, 0.62, 0.45)
@@ -90,11 +90,25 @@ func color_for(h: float, n: Vector3, x: float, z: float, inland: float = 1000.0)
 	return c
 
 
-static func material() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.roughness = 0.95
-	return m
+static var _material: ShaderMaterial
+
+
+static func material() -> ShaderMaterial:
+	if _material == null:
+		_material = ShaderMaterial.new()
+		_material.shader = preload("res://world/shaders/terrain.gdshader")
+		var noise := FastNoiseLite.new()
+		noise.seed = 5
+		noise.frequency = 0.02
+		noise.fractal_octaves = 4
+		var tex := NoiseTexture2D.new()
+		tex.width = 256
+		tex.height = 256
+		tex.seamless = true
+		tex.noise = noise
+		tex.generate_mipmaps = true
+		_material.set_shader_parameter("detail_noise", tex)
+	return _material
 
 
 ## Height-map collision for a square area with 1 m cells (HeightMapShape3D

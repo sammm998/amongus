@@ -1,0 +1,116 @@
+{
+  "default": "day",
+  "presets": {
+    "day": {
+      "sun_azimuth_degrees": 135.0,
+      "sun_elevation_degrees": 52.0,
+      "sky_sun_elevation_degrees": 52.0,
+      "sky": {
+        "zenith": "#2c64b8",
+        "upper": "#5b93d6",
+        "lower": "#a9c8e8",
+        "horizon": "#d7e3ee",
+        "below": "#4a6a86",
+        "sun": "#fff6e6",
+        "sun_energy": 6.0,
+        "glow_energy": 0.35,
+        "cloud_coverage": 0.46,
+        "cloud_lit": "#fbfbfd",
+        "cloud_shadow": "#b4bfcf",
+        "sun_disc_degrees": 1.2
+      },
+      "light": {
+        "color": "#fff3e0",
+        "energy": 1.7,
+        "shadow_blur": 1.0
+      },
+      "ambient_energy": 0.45,
+      "exposure": 0.9,
+      "tonemap": "agx",
+      "glow_intensity": 0.22,
+      "glow_threshold": 1.8,
+      "fog_color": "#c6d4e3",
+      "fog_density": 0.00022,
+      "fog_aerial": 0.25,
+      "volumetric_density": 0.00015,
+      "saturation": 1.1,
+      "contrast": 1.1,
+      "water_glow": 0.18,
+      "lamps": false
+    },
+    "sunset": {
+      "sun_azimuth_degrees": 135.0,
+      "sun_elevation_degrees": 14.0,
+      "sky_sun_elevation_degrees": 4.3,
+      "sky": {
+        "zenith": "#33296b",
+        "upper": "#8c549e",
+        "lower": "#ff756b",
+        "horizon": "#ff9e4d",
+        "below": "#1a3866",
+        "sun": "#ffdb94",
+        "sun_energy": 14.0,
+        "glow_energy": 0.9,
+        "cloud_coverage": 0.6,
+        "cloud_lit": "#ff9e80",
+        "cloud_shadow": "#804d8c",
+        "sun_disc_degrees": 1.6
+      },
+      "light": {
+        "color": "#ffc280",
+        "energy": 2.6,
+        "shadow_blur": 1.5
+      },
+      "ambient_energy": 0.75,
+      "exposure": 0.95,
+      "tonemap": "aces",
+      "glow_intensity": 0.45,
+      "glow_threshold": 1.4,
+      "fog_color": "#ffa88c",
+      "fog_density": 0.00025,
+      "fog_aerial": 0.15,
+      "volumetric_density": 0.00035,
+      "saturation": 1.3,
+      "contrast": 1.05,
+      "water_glow": 0.55,
+      "lamps": true
+    },
+    "night": {
+      "sun_azimuth_degrees": 300.0,
+      "sun_elevation_degrees": 35.0,
+      "sky_sun_elevation_degrees": 35.0,
+      "sky": {
+        "zenith": "#050a1c",
+        "upper": "#0b1631",
+        "lower": "#16284a",
+        "horizon": "#233a5c",
+        "below": "#070d1a",
+        "sun": "#cfd8ff",
+        "sun_energy": 2.0,
+        "glow_energy": 0.2,
+        "cloud_coverage": 0.4,
+        "cloud_lit": "#3a4a6e",
+        "cloud_shadow": "#101828",
+        "sun_disc_degrees": 1.0
+      },
+      "light": {
+        "color": "#9fb2ff",
+        "energy": 0.35,
+        "shadow_blur": 2.0
+      },
+      "ambient_energy": 0.25,
+      "exposure": 1.1,
+      "tonemap": "agx",
+      "glow_intensity": 0.6,
+      "glow_threshold": 1.0,
+      "fog_color": "#1c2a45",
+      "fog_density": 0.0008,
+      "fog_aerial": 0.2,
+      "volumetric_density": 0.0004,
+      "saturation": 0.9,
+      "contrast": 1.05,
+      "water_glow": 0.08,
+      "lamps": true
+    }
+  }
+}

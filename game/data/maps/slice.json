@@ -65,21 +65,24 @@
     "z": -18,
     "radius": 52,
     "height": 3.0,
-    "blend": 0.35
+    "blend": 0.35,
+    "paved": true
    },
    {
     "x": -115,
     "z": -18,
     "radius": 34,
     "height": 2.8,
-    "blend": 0.35
+    "blend": 0.35,
+    "paved": true
    },
    {
     "x": 148,
     "z": -22,
     "radius": 38,
     "height": 2.6,
-    "blend": 0.3
+    "blend": 0.3,
+    "paved": true
    },
    {
     "x": 0,
