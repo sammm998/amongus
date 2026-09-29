@@ -53,7 +53,25 @@ Measurements: this build machine only has a CPU rasteriser (llvmpipe, 4 cores): 
 
 Honest gap vs reference: our vista is less detailed (fewer props, simpler building shapes, faint clouds, volcano reads as a plain cone, smoke barely visible). Palette, lighting direction, water and characters are in the right family. Further art passes are planned in M5 (full island) and M7 (rigged characters).
 
+## M2 — Core loop vertical slice (playable; polish ongoing)
+Done: pure rules (roles, vitals, weapons, meetings, tasks, sabotage, win, phases, comms) with tests; slice map
+(Central Command, Medical Center, Harbor, beach, roads); authoritative MatchServer (lag-compensated hitscan,
+downed/finishing, reports, 4-phase meetings, revive/keep, suspect marker, emergency meeting, tasks incl. multi-step,
+Blackout/Camera Jam/Power Failure + repairs, loot/healing, chat channel rules, results with role reveal);
+BotBrain (same information as a human, LOS perception); client (prediction/reconciliation, interpolation,
+HUD, touch controls, meeting/results/role/camera/sabotage screens). Tests: 144 cases incl. a full 8-bot match
+and the role-leak audit. Web build + Railway deployment (Dockerfile, Caddy: `/` web, `/ws` server).
+
+Known gaps: no audio yet; bots are simple; name tags use Godot's default font; camera terminal feeds render
+the live world but replay (M3) is not done; performance on real phones not measured.
+
 ## Decisions
+- Deployment: Railway runs one container: Caddy on `$PORT` serves the Web export and proxies `/ws` to the
+  dedicated server (WebSocket, port 8081). PLAY VS BOTS uses an in-memory loopback server, so it works offline
+  and in the browser without the server.
+- Meeting revive vote: REVIVE wins if revive votes > keep votes; abstains are not counted.
+- Sabotage timers (incl. the critical countdown) and the match clock pause during meetings.
+- A player who disconnects mid-match is taken over by a bot, so their role is never revealed.
 - **Godot 4.7.2** (latest stable at project start, 2026-09).
 - Autoloads live in `game/autoload/` (not listed in the spec layout) so the pure folders (`core`, `net`) stay node-free. Backend code lives in `game/services/`.
 - Networking uses raw `MultiplayerPeer` packets with our own `Protocol` (not Godot RPCs): messages are plain `[type, payload]` arrays, which lets tests record every message a client receives (needed for the role-leak test in M2) and keeps a loopback transport trivial.
