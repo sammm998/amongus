@@ -67,8 +67,14 @@ func coast_distance(x: float, z: float) -> float:
 
 
 func height_at(x: float, z: float) -> float:
+	return sample_both(x, z).x
+
+
+## (height, coast distance) in one pass — used when baking grids.
+func sample_both(x: float, z: float) -> Vector2:
 	var jitter := _noise.get_noise_2d(x, z)
-	var d := coast_distance(x, z) + jitter * 4.0
+	var coast := coast_distance(x, z)
+	var d := coast + jitter * 4.0
 	var h := coastal_profile(d)
 	var inland := smoothstep(beach_width * 0.6, beach_width + 12.0, d)
 	for hill: Dictionary in hills:
@@ -81,7 +87,7 @@ func height_at(x: float, z: float) -> float:
 		var r := float(flat["radius"])
 		var w := 1.0 - smoothstep(r * (1.0 - float(flat.get("blend", 0.3))), r, fd)
 		h = lerpf(h, float(flat["height"]), w)
-	return h
+	return Vector2(h, coast)
 
 
 func coastal_profile(d: float) -> float:
@@ -95,6 +101,15 @@ func coastal_profile(d: float) -> float:
 		return lerpf(0.15, -shelf_depth, sqrt(t))
 	var t := clampf((-d - shelf_width) / dropoff, 0.0, 1.0)
 	return lerpf(-shelf_depth, sea_floor, t * t * (3.0 - 2.0 * t))
+
+
+## Same interface as MapData (used by mesh/depth builders).
+func height(x: float, z: float) -> float:
+	return height_at(x, z)
+
+
+func normal(x: float, z: float) -> Vector3:
+	return normal_at(x, z, 0.5)
 
 
 func normal_at(x: float, z: float, step: float = 1.0) -> Vector3:

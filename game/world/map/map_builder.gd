@@ -29,7 +29,10 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	root.add_child(statics)
 	var col: Dictionary = map.raw["collision"]
 	var center := Vector2(float(col["center"][0]), float(col["center"][1]))
-	statics.add_child(TerrainMeshBuilder.build_collision(map.field, center, int(col["size"])))
+	if map.grid != null:
+		statics.add_child(TerrainMeshBuilder.build_grid_collision(map.grid))
+	else:
+		statics.add_child(TerrainMeshBuilder.build_collision(map.field, center, int(col["size"])))
 	_boundary(map, statics)
 	var district_lights := {}
 	var station_nodes := {}
@@ -74,21 +77,29 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 
 
 static func _terrain_visuals(map: MapData, root: Node3D) -> void:
-	var col: Dictionary = map.raw["collision"]
-	var size := float(col["size"]) + 120.0
-	var origin := Vector2(float(col["center"][0]), float(col["center"][1])) - Vector2(size, size) * 0.5
-	var mi := MeshInstance3D.new()
-	mi.name = "Terrain"
-	mi.mesh = TerrainMeshBuilder.new().build_mesh(map.field, origin, Vector2(size, size), 240)
-	root.add_child(mi)
+	var rect := map.terrain_rect()
+	var builder := TerrainMeshBuilder.new()
+	# Chunks of <= 256 m so off-screen parts are culled; ~2.3 m (slice) / 4 m cells.
+	var chunk_m := 256.0
+	var nx := int(ceil(rect.size.x / chunk_m))
+	var nz := int(ceil(rect.size.y / chunk_m))
+	var cell := 4.0 if map.grid != null else rect.size.x / 240.0
+	for cz in nz:
+		for cx in nx:
+			var o := rect.position + Vector2(cx, cz) * chunk_m
+			var sz := Vector2(minf(chunk_m, rect.end.x - o.x), minf(chunk_m, rect.end.y - o.y))
+			var mi := MeshInstance3D.new()
+			mi.name = "Terrain_%d_%d" % [cx, cz]
+			mi.mesh = builder.build_mesh(map, o, sz, maxi(8, int(ceil(maxf(sz.x, sz.y) / cell))))
+			root.add_child(mi)
 	var to_sun := Vector3(0.72, 0.075, -0.69)
 	if map.raw.has("sun_direction"):
 		var s: Array = map.raw["sun_direction"]
 		to_sun = Vector3(s[0], s[1], s[2])
-	var sea := WaterFactory.sea(3000.0, to_sun, 128)
+	var sea := WaterFactory.sea(maxf(3000.0, rect.size.x * 2.5), to_sun, 128)
 	sea.name = "Sea"
 	root.add_child(sea)
-	WaterFactory.bake_depth(sea, map.field, Rect2(origin, Vector2(size, size)), 1.0)
+	WaterFactory.bake_depth(sea, map, rect, 1.0 if map.grid == null else 3.0)
 
 
 static func _boundary(map: MapData, statics: StaticBody3D) -> void:
@@ -438,50 +449,63 @@ static func _roads(map: MapData, root: Node3D, lights: Dictionary) -> void:
 static func _vegetation(map: MapData, root: Node3D) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
-	var palms: Array[Node3D] = []
+	var kinds: Array[Mesh] = []  # palm variants: [trunk, leaves] per variant, then bush, fern
+	var palm_parts := 0
 	for i in 3:
-		palms.append(VegetationBuilder.palm(rng, 8.0 + i * 1.5))
-	var bush_mm := MultiMesh.new()
-	bush_mm.transform_format = MultiMesh.TRANSFORM_3D
-	bush_mm.mesh = VegetationBuilder.bush(rng, 1.8)
-	var fern_mm := MultiMesh.new()
-	fern_mm.transform_format = MultiMesh.TRANSFORM_3D
-	fern_mm.mesh = VegetationBuilder.fern(rng, 1.2)
-	var bushes: Array[Transform3D] = []
-	var ferns: Array[Transform3D] = []
+		var palm := VegetationBuilder.palm(rng, 8.0 + i * 1.5)
+		for child in palm.get_children():
+			if child is MeshInstance3D:
+				kinds.append((child as MeshInstance3D).mesh)
+		if i == 0:
+			palm_parts = kinds.size()
+		palm.free()
+	kinds.append(VegetationBuilder.bush(rng, 1.8))
+	kinds.append(VegetationBuilder.fern(rng, 1.2))
+	var bush_kind := kinds.size() - 2
+	var fern_kind := kinds.size() - 1
+	var xforms: Array = []
+	for k in kinds.size():
+		xforms.append([])
 	var blockers := _blockers(map)
 	var palm_count := 0
-	for i in 7000:
-		var x := rng.randf_range(-200.0, 200.0)
-		var z := rng.randf_range(-150.0, 140.0)
+	var veg: Dictionary = map.raw.get("vegetation", {})
+	var area: Array = veg.get("area", [-200.0, -150.0, 200.0, 140.0])
+	var max_palms := int(veg.get("palms", 260))
+	for i in int(veg.get("samples", 7000)):
+		var x := rng.randf_range(float(area[0]), float(area[2]))
+		var z := rng.randf_range(float(area[1]), float(area[3]))
 		var h := map.height(x, z)
 		if h < 0.6 or _blocked(blockers, x, z):
 			continue
 		var r := rng.randf()
 		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.5)), Vector3(x, h - 0.1, z))
-		var inland := map.field.coast_distance(x, z) - map.field.beach_width
-		if r < 0.05 and palm_count < 260:
-			var p := palms[palm_count % palms.size()].duplicate()
-			p.position = Vector3(x, h - 0.2, z)
-			p.rotation.y = rng.randf() * TAU
-			p.scale = Vector3.ONE * rng.randf_range(0.85, 1.2)
-			root.add_child(p)
+		var inland := map.coast_distance(x, z) - map.beach_width
+		if r < 0.05 and palm_count < max_palms:
+			var variant := palm_count % 3
+			var pxf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.85, 1.2)), Vector3(x, h - 0.2, z))
+			for part in palm_parts:
+				xforms[variant * palm_parts + part].append(pxf)
 			palm_count += 1
 		elif inland > 2.0 and r < 0.45:
-			bushes.append(xf)
+			xforms[bush_kind].append(xf)
 		elif inland > 2.0 and r < 0.65:
-			ferns.append(xf)
-	for v in palms:
-		v.free()
-	for pair: Array in [[bush_mm, bushes], [fern_mm, ferns]]:
-		var mm: MultiMesh = pair[0]
-		var xfs: Array[Transform3D] = pair[1]
-		mm.instance_count = xfs.size()
-		for i in xfs.size():
-			mm.set_instance_transform(i, xfs[i])
+			xforms[fern_kind].append(xf)
+	for k in kinds.size():
+		var list: Array = xforms[k]
+		if list.is_empty():
+			continue
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = kinds[k]
+		mm.instance_count = list.size()
+		for i in list.size():
+			mm.set_instance_transform(i, list[i])
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
-		mmi.visibility_range_end = 160.0
+		# Palms stay visible far away (landmarks); ground cover fades early.
+		mmi.visibility_range_end = 700.0 if k < bush_kind else 160.0
+		if k >= bush_kind:
+			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(mmi)
 
 
@@ -505,13 +529,29 @@ static func _blockers(map: MapData) -> Array:
 				var p := a.lerp(b, float(k) / n)
 				out.append([p.x, p.y, 5.0])
 	for name: String in map.waypoints:
+		if name.begins_with("g_"):
+			continue  # open-ground walking grid: vegetation may grow there
 		var p: Vector3 = map.waypoints[name]
 		out.append([p.x, p.z, 2.5])
-	return out
+	# Spatial hash (BLOCK_CELL buckets) so big maps stay fast to populate.
+	var hash := {}
+	for c: Array in out:
+		var r: float = c[2]
+		for bz in range(floori((c[1] - r) / BLOCK_CELL), floori((c[1] + r) / BLOCK_CELL) + 1):
+			for bx in range(floori((c[0] - r) / BLOCK_CELL), floori((c[0] + r) / BLOCK_CELL) + 1):
+				var key := Vector2i(bx, bz)
+				if not hash.has(key):
+					hash[key] = []
+				hash[key].append(c)
+	return [hash]
+
+
+const BLOCK_CELL := 16.0
 
 
 static func _blocked(blockers: Array, x: float, z: float) -> bool:
-	for c: Array in blockers:
+	var bucket: Array = blockers[0].get(Vector2i(floori(x / BLOCK_CELL), floori(z / BLOCK_CELL)), [])
+	for c: Array in bucket:
 		var dx: float = x - c[0]
 		var dz: float = z - c[1]
 		if dx * dx + dz * dz < c[2] * c[2]:

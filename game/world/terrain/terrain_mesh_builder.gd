@@ -23,8 +23,10 @@ func _init() -> void:
 	_detail.frequency = 0.05
 
 
-## Mesh covering [origin, origin + size] with `res` cells per side.
-func build_mesh(field: HeightField, origin: Vector2, size: Vector2, res: int) -> ArrayMesh:
+## Mesh covering [origin, origin + size] with `res` cells per side, sampling
+## `ground` (a MapData or HeightField: height/normal/coast_distance/beach_width).
+func build_mesh(ground: Variant, origin: Vector2, size: Vector2, res: int) -> ArrayMesh:
+	var beach_width: float = ground.beach_width
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var colors := PackedColorArray()
@@ -38,11 +40,11 @@ func build_mesh(field: HeightField, origin: Vector2, size: Vector2, res: int) ->
 		for xi in res + 1:
 			var x := origin.x + xi * step.x
 			var z := origin.y + zi * step.y
-			var h := field.height_at(x, z)
-			var n := field.normal_at(x, z, maxf(step.x, 0.5))
+			var h: float = ground.height(x, z)
+			var n: Vector3 = ground.normal(x, z)
 			verts[i] = Vector3(x, h, z)
 			normals[i] = n
-			colors[i] = color_for(h, n, x, z, field.coast_distance(x, z) - field.beach_width)
+			colors[i] = color_for(h, n, x, z, ground.coast_distance(x, z) - beach_width)
 			i += 1
 	for zi in res:
 		for xi in res:
@@ -127,4 +129,23 @@ static func build_collision(field: HeightField, center: Vector2, size: int) -> C
 	var col := CollisionShape3D.new()
 	col.shape = shape
 	col.position = Vector3(center.x, 0.0, center.y)
+	return col
+
+
+## Collision straight from a baked grid: cells of `grid.cell` metres, achieved
+## with a uniform scale (heights are divided by the cell size to compensate).
+static func build_grid_collision(grid: HeightGrid) -> CollisionShape3D:
+	var shape := HeightMapShape3D.new()
+	shape.map_width = grid.width
+	shape.map_depth = grid.depth
+	var data := PackedFloat32Array()
+	data.resize(grid.heights.size())
+	for i in data.size():
+		data[i] = grid.heights[i] / grid.cell
+	shape.map_data = data
+	var col := CollisionShape3D.new()
+	col.shape = shape
+	col.scale = Vector3.ONE * grid.cell
+	var half := Vector2(grid.width - 1, grid.depth - 1) * grid.cell * 0.5
+	col.position = Vector3(grid.origin.x + half.x, 0.0, grid.origin.y + half.y)
 	return col

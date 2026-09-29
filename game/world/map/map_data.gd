@@ -4,6 +4,8 @@ extends RefCounted
 
 var raw: Dictionary
 var field: HeightField
+var grid: HeightGrid
+var beach_width := 0.0
 var stations: Dictionary = {}   # id -> dict (with "pos": Vector3)
 var districts: Array = []
 var waypoints: Dictionary = {}  # id -> Vector3
@@ -21,6 +23,8 @@ static func load_map(map_id: String) -> MapData:
 
 func _init_from_raw() -> void:
 	field = HeightField.new(raw["terrain"])
+	grid = _load_grid()
+	beach_width = field.beach_width
 	districts = raw.get("districts", [])
 	for s: Dictionary in raw.get("stations", []):
 		var d := s.duplicate()
@@ -44,13 +48,65 @@ func id() -> String:
 	return raw.get("id", "")
 
 
+## Terrain rectangle (origin, size): the grid when present, else collision + margin.
+func terrain_rect() -> Rect2:
+	if raw.has("grid"):
+		var g: Dictionary = raw["grid"]
+		return Rect2(g["origin"][0], g["origin"][1], g["size"][0], g["size"][1])
+	var col: Dictionary = raw["collision"]
+	var size := float(col["size"]) + 120.0
+	return Rect2(float(col["center"][0]) - size * 0.5, float(col["center"][1]) - size * 0.5, size, size)
+
+
+## Large maps carry a "grid" entry: heights are pre-baked into a HeightGrid
+## (cached in data/maps/<id>.heights) instead of evaluating the field each call.
+func _load_grid() -> HeightGrid:
+	if not raw.has("grid"):
+		return null
+	var spec: Dictionary = raw["grid"]
+	var key := str(hash(JSON.stringify(raw["terrain"]) + JSON.stringify(spec)))
+	var path := "res://data/maps/%s.heights" % raw.get("id", "map")
+	var g := HeightGrid.load_cached(path, key)
+	if g != null:
+		return g
+	g = HeightGrid.bake(field, Vector2(spec["origin"][0], spec["origin"][1]), Vector2(spec["size"][0], spec["size"][1]), float(spec["cell"]))
+	# Cache next to the map when running from source (tools/bake_maps.gd commits it).
+	if OS.has_feature("editor") or not OS.has_feature("template"):
+		g.save(ProjectSettings.globalize_path(path), key)
+	return g
+
+
 func height(x: float, z: float) -> float:
-	return field.height_at(x, z)
+	return grid.height(x, z) if grid != null and grid.contains(x, z) else field.height_at(x, z)
+
+
+func normal(x: float, z: float) -> Vector3:
+	return grid.normal(x, z) if grid != null and grid.contains(x, z) else field.normal_at(x, z, 0.5)
+
+
+func coast_distance(x: float, z: float) -> float:
+	return grid.coast_distance(x, z) if grid != null and grid.contains(x, z) else field.coast_distance(x, z)
 
 
 ## Ground position; on building floors the pad height is used (flats).
 func ground_point(x: float, z: float) -> Vector3:
-	return Vector3(x, field.height_at(x, z), z)
+	return Vector3(x, height(x, z), z)
+
+
+## Adds a waypoint (used by AutoWaypoints).
+func add_waypoint(name: String, pos: Vector3) -> void:
+	if _wp_ids.has(name):
+		return
+	waypoints[name] = pos
+	var id := _wp_names.size()
+	_wp_names.append(name)
+	_wp_ids[name] = id
+	_astar.add_point(id, pos)
+
+
+func connect_waypoints(a: String, b: String) -> void:
+	if _wp_ids.has(a) and _wp_ids.has(b) and a != b:
+		_astar.connect_points(_wp_ids[a], _wp_ids[b])
 
 
 func station(station_id: String) -> Dictionary:

@@ -23,7 +23,7 @@ const DEFAULTS := {
 	"bots": -1,
 	"auto_start": false,
 	"mode": "standard",
-	"map": "slice",
+	"map": "island",
 	"seed": -1,
 	"sim_speed": 1.0,
 	"play": false,

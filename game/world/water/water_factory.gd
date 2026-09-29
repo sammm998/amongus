@@ -26,7 +26,8 @@ static func sea(size: float, to_sun: Vector3, subdivisions: int = 96) -> MeshIns
 
 ## Bakes water depth (0 at the waterline) from a HeightField into a texture
 ## the sea shader samples for shallow colour and shoreline foam.
-static func bake_depth(sea: MeshInstance3D, field: HeightField, bounds: Rect2, metres_per_pixel: float = 1.0, depth_range: float = 20.0) -> void:
+## `ground`: MapData or HeightField (anything with height(x, z)).
+static func bake_depth(sea: MeshInstance3D, ground: Variant, bounds: Rect2, metres_per_pixel: float = 1.0, depth_range: float = 20.0) -> void:
 	var w := int(bounds.size.x / metres_per_pixel)
 	var h := int(bounds.size.y / metres_per_pixel)
 	var img := Image.create(w, h, false, Image.FORMAT_RF)
@@ -34,7 +35,7 @@ static func bake_depth(sea: MeshInstance3D, field: HeightField, bounds: Rect2, m
 		for x in w:
 			var wx := bounds.position.x + (x + 0.5) * metres_per_pixel
 			var wz := bounds.position.y + (y + 0.5) * metres_per_pixel
-			img.set_pixel(x, y, Color(clampf(-field.height_at(wx, wz) / depth_range, 0.0, 1.0), 0, 0))
+			img.set_pixel(x, y, Color(clampf(-float(ground.height(wx, wz)) / depth_range, 0.0, 1.0), 0, 0))
 	var mat: ShaderMaterial = sea.material_override
 	mat.set_shader_parameter("depth_map", ImageTexture.create_from_image(img))
 	mat.set_shader_parameter("depth_bounds", Vector4(bounds.position.x, bounds.position.y, bounds.size.x, bounds.size.y))

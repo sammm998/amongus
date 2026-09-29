@@ -207,20 +207,21 @@ wp("relay_r", -60, -15); chain("rw2", "relay_r"); wp("relay_h", 90, -27); chain(
 wp("mid_e", 40, 30); chain("rs2", "mid_e", "re2")
 wp("mid_w", -50, 30); chain("rs2", "mid_w", "rw2")
 
-out = {
-    "id": "slice", "name": "Sunset Island — Slice",
-    "terrain": terrain,
-    "collision": {"center": [0, -10], "size": 440},
-    "boundary": {"x": 0, "z": -10, "rx": 205, "rz": 145, "segments": 40, "height": 30},
-    "sun_direction": [0.72, 0.075, -0.69],
-    "districts": districts, "buildings": buildings, "props": props, "stations": S,
-    "cameras": cameras, "spawns": spawns, "loot": loot, "roads": roads,
-    "meeting_center": [0, -22], "medical_respawn": ["med_pod_1", "med_pod_2"],
-    "generators": ["gen_a", "gen_b", "gen_c"],
-    "features": [],
-    "lockable_buildings": ["cc_hall", "cc_annex", "med_center", "harbor_warehouse"],
-    "medical_center_respawn": [-115, -4],
-    "waypoints": W, "edges": E,
-}
-json.dump(out, open("game/data/maps/slice.json", "w"), indent=1)
-print("stations", len(S), "waypoints", len(W), "edges", len(E))
+if __name__ == "__main__":
+    out = {
+        "id": "slice", "name": "Sunset Island — Slice",
+        "terrain": terrain,
+        "collision": {"center": [0, -10], "size": 440},
+        "boundary": {"x": 0, "z": -10, "rx": 205, "rz": 145, "segments": 40, "height": 30},
+        "sun_direction": [0.72, 0.075, -0.69],
+        "districts": districts, "buildings": buildings, "props": props, "stations": S,
+        "cameras": cameras, "spawns": spawns, "loot": loot, "roads": roads,
+        "meeting_center": [0, -22], "medical_respawn": ["med_pod_1", "med_pod_2"],
+        "generators": ["gen_a", "gen_b", "gen_c"],
+        "features": [],
+        "lockable_buildings": ["cc_hall", "cc_annex", "med_center", "harbor_warehouse"],
+        "medical_center_respawn": [-115, -4],
+        "waypoints": W, "edges": E,
+    }
+    json.dump(out, open("game/data/maps/slice.json", "w"), indent=1)
+    print("stations", len(S), "waypoints", len(W), "edges", len(E))
