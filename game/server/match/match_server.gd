@@ -58,6 +58,8 @@ var _evidence_timer := 0.0
 var _doors_locked: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var motor: PlayerMotor
+var drop_cfg: Dictionary
+var drop: Dictionary = {}  # active plane path: from, dir, speed, start, t_open, t_close
 var world_viewport: SubViewport
 var world: Node3D
 
@@ -93,7 +95,8 @@ func setup(p_map_id: String = "slice", p_mode: String = "standard", overrides: D
 	net_cfg = GameData.table("network")
 	info_cfg = GameData.table("info_systems")
 	settings = MatchSettings.build(GameData.table("lobby_defaults"), GameData.table("modes"), mode, overrides)
-	motor = PlayerMotor.new(movement_cfg)
+	drop_cfg = GameData.table("drop")
+	motor = PlayerMotor.new(movement_cfg, drop_cfg)
 	map = MapData.load_map(map_id)
 	_bot_names = bots_cfg["names"].duplicate()
 	_build_world()
@@ -414,6 +417,70 @@ func _spawn_all() -> void:
 		p.vitals.revive(float(combat_cfg["max_health"]), 0.0, 0.0)
 		p.inventory.reset_loadout(weapons_by_id[interaction_cfg["start_weapon"]], int(interaction_cfg["start_light_ammo"]))
 		i += 1
+	if bool(drop_cfg.get("enabled", false)) and map.raw.has("drop"):
+		_start_drop()
+
+
+## Everyone boards a plane that crosses the island on a random line through
+## its centre; players jump (JUMP) while it is over land, and are pushed out
+## when it reaches the far coast.
+func _start_drop() -> void:
+	var b: Dictionary = map.raw["boundary"]
+	var center := Vector3(float(b["x"]), 0.0, float(b["z"]))
+	var radius := maxf(float(b["rx"]), float(b["rz"])) + float(drop_cfg["plane_margin_m"])
+	var angle := rng.randf() * TAU
+	var dir := Vector3(cos(angle), 0.0, sin(angle))
+	var from := center - dir * radius + Vector3(0, float(drop_cfg["altitude"]), 0)
+	var speed := float(drop_cfg["plane_speed"])
+	var length := radius * 2.0
+	var first := -1.0
+	var last := -1.0
+	var d := 0.0
+	while d <= length:
+		var p := from + dir * d
+		if map.coast_distance(p.x, p.z) > float(drop_cfg["jump_coast_margin_m"]):
+			if first < 0.0:
+				first = d
+			last = d
+		d += 10.0
+	if first < 0.0:
+		first = length * 0.3
+		last = length * 0.7
+	drop = {"from": from, "dir": dir, "speed": speed, "start": now, "t_open": now + first / speed, "t_close": now + last / speed, "end": now + length / speed}
+	var window: Array = drop_cfg["bot_jump_window"]
+	for p: ServerPlayer in players.values():
+		if p.spectator:
+			continue
+		p.air = PlayerMotor.Air.PLANE
+		p.body.global_position = plane_position(now)
+		p.body.velocity = dir * speed
+		p.bot_jump_at = lerpf(drop["t_open"], drop["t_close"], rng.randf_range(float(window[0]), float(window[1])))
+
+
+func plane_position(t: float) -> Vector3:
+	if drop.is_empty():
+		return Vector3.ZERO
+	return drop["from"] + drop["dir"] * float(drop["speed"]) * (t - float(drop["start"]))
+
+
+func _drop_view() -> Dictionary:
+	if drop.is_empty() or now > float(drop["end"]) + 5.0:
+		return {}
+	return drop.duplicate()
+
+
+## One step of the opening drop for a player still on the plane.
+func _plane_step(p: ServerPlayer, inp: PlayerInput) -> void:
+	if drop.is_empty():
+		p.air = PlayerMotor.Air.FREEFALL
+		return
+	var wants := inp.has(PlayerInput.JUMP) or (bots.has(p.id) and now >= p.bot_jump_at)
+	if (wants and now >= float(drop["t_open"])) or now >= float(drop["t_close"]):
+		p.air = PlayerMotor.Air.FREEFALL
+		p.body.velocity = drop["dir"] * float(drop["speed"]) * float(drop_cfg["exit_forward_fraction"])
+		return
+	p.body.global_position = plane_position(now)
+	p.body.velocity = drop["dir"] * float(drop["speed"])
 
 
 func _process_players(delta: float) -> void:
@@ -465,8 +532,18 @@ func _apply_input(p: ServerPlayer, inp: PlayerInput) -> void:
 		p.sprinting = inp.has(PlayerInput.SPRINT)
 		p.flashlight = inp.has(PlayerInput.FLASHLIGHT)
 	var before := p.feet()
-	var state := {"frozen": not allowed, "downed": downed, "stunned": p.vitals.is_stunned(), "crouching": p.crouching}
-	motor.step(p.body, inp, state, inp.dt)
+	if p.air == PlayerMotor.Air.PLANE:
+		_plane_step(p, inp)
+		return
+	var state := {"frozen": not allowed, "downed": downed, "stunned": p.vitals.is_stunned(), "crouching": p.crouching, "air": p.air}
+	var was_air := p.air
+	p.air = motor.step(p.body, inp, state, inp.dt)
+	if was_air != PlayerMotor.Air.NONE:
+		if p.air == PlayerMotor.Air.NONE and p.feet().y < float(drop_cfg["ashore_below_y"]):
+			# Landed in the sea: wash ashore at the closest walkable point.
+			p.body.global_position = map.waypoints[map.nearest_waypoint(p.feet())] + Vector3(0, 0.2, 0)
+			p.body.velocity = Vector3.ZERO
+		return  # no shooting or items while airborne
 	p.stats["distance"] += Vector2(p.feet().x - before.x, p.feet().z - before.z).length()
 	if not phases.is_playing() or not p.is_living() or p.vitals.is_stunned():
 		return
@@ -693,7 +770,7 @@ func find_inspection(p: ServerPlayer) -> Dictionary:
 func _process_interaction(p: ServerPlayer, delta: float) -> void:
 	_process_inspect(p, delta)
 	var holding := p.last_input.has(PlayerInput.INTERACT)
-	if not phases.is_playing() or not p.is_living():
+	if not phases.is_playing() or not p.is_living() or p.air != PlayerMotor.Air.NONE:
 		p.interact_target = ""
 		p.interact_held = 0.0
 		p.set_meta("prompt", {})
@@ -1208,8 +1285,10 @@ func _back_to_lobby() -> void:
 	_reset_match_state()
 	var spawns := map.spawn_points()
 	var i := 0
+	drop = {}
 	for p: ServerPlayer in players.values():
 		p.spectator = false
+		p.air = PlayerMotor.Air.NONE
 		p.reported = false
 		p.role = RoleAssigner.Role.AGENT
 		p.vitals = Vitals.new(float(combat_cfg["max_health"]), float(combat_cfg["max_shield"]), float(settings["bleed_out_seconds"]), bool(settings["bleed_out_enabled"]))
@@ -1243,6 +1322,7 @@ func _send_snapshots() -> void:
 		flags |= 32 if q.vitals.protection_left > 0.0 else 0
 		flags |= 64 if q.healing_left > 0.0 else 0
 		flags |= 128 if not q.carrying.is_empty() else 0
+		flags |= [0, 256, 512, 1024][q.air]
 		var emote := q.emote if q.emote_until > now else ""
 		var entry := [q.id, q.feet(), q.yaw, q.pitch, int(q.vitals.state), w.id if w != null else "", flags, emote]
 		if q.vitals.state == Vitals.State.ELIMINATED:
@@ -1270,7 +1350,7 @@ func _me_block(p: ServerPlayer) -> Dictionary:
 	return {
 		"id": p.id, "state": int(p.vitals.state), "spectator": p.spectator, "health": p.vitals.health, "shield": p.vitals.shield,
 		"bleed": p.vitals.bleed_left, "protect": p.vitals.protection_left, "stun": p.vitals.stun_left,
-		"pos": p.feet(), "vel": p.body.velocity, "crouch": p.crouching,
+		"pos": p.feet(), "vel": p.body.velocity, "crouch": p.crouching, "air": p.air,
 		"inv": p.inventory.view(), "reloading": w != null and w.is_reloading(),
 		"healing": p.healing_left, "prompt": prompt_view, "inspect": inspect_view, "carrying": p.carrying,
 		"emergency_left": int(settings["emergency_meeting_uses_per_player"]) - p.emergency_uses,
@@ -1282,7 +1362,7 @@ func _send_match_info_to_all() -> void:
 	for p: ServerPlayer in players.values():
 		list.append({"id": p.id, "name": p.name, "color": p.color, "bot": p.is_bot})
 	var payload := {"map": map_id, "phase": phases.phase_name(), "time_left": maxf(0.0, phases.time_left), "elapsed": phases.elapsed,
-		"time_limit": float(settings["match_time_limit_seconds"]), "players": list, "host": host_id, "mode": mode, "time_of_day": str(settings.get("time_of_day", "day"))}
+		"time_limit": float(settings["match_time_limit_seconds"]), "players": list, "host": host_id, "mode": mode, "time_of_day": str(settings.get("time_of_day", "day")), "drop": _drop_view()}
 	broadcast(Protocol.Msg.MATCH_INFO, payload)
 
 

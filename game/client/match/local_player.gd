@@ -36,6 +36,8 @@ var input_enabled := true
 var aiming := false
 var aim_point := Vector3.ZERO
 var remote_hitboxes: Callable   # () -> Array of [feet: Vector3, height: float]
+var air := 0                     # PlayerMotor.Air, predicted; corrected by the server
+var canopy: Node3D
 
 var _yaw_pivot: Node3D
 var _pitch_pivot: Node3D
@@ -49,7 +51,7 @@ func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, su
 	map = p_map
 	touch = p_touch
 	movement_cfg = GameData.table("movement")
-	motor = PlayerMotor.new(movement_cfg)
+	motor = PlayerMotor.new(movement_cfg, GameData.table("drop"))
 	body = PlayerMotor.make_body(movement_cfg)
 	body.name = "LocalBody"
 	add_child(body)
@@ -66,6 +68,8 @@ func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, su
 	_flashlight.position = Vector3(0.2, 1.4, -0.3)
 	_flashlight.visible = false
 	body.add_child(_flashlight)
+	canopy = DropVisuals.canopy()
+	body.add_child(canopy)
 	_yaw_pivot = Node3D.new()
 	add_child(_yaw_pivot)
 	_pitch_pivot = Node3D.new()
@@ -86,9 +90,10 @@ func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, su
 	camera.make_current()
 
 
-func teleport(pos: Vector3) -> void:
+func teleport(pos: Vector3, vel: Vector3 = Vector3.ZERO, p_air: int = 0) -> void:
 	body.global_position = pos
-	body.velocity = Vector3.ZERO
+	body.velocity = vel
+	air = p_air
 	history.clear()
 
 
@@ -212,9 +217,13 @@ func _apply_aim_assist(dt: float) -> void:
 func simulate(inp: PlayerInput, frozen: bool) -> void:
 	var state_id := game.my_state()
 	var downed := state_id == Vitals.State.DOWNED
-	var state := {"frozen": frozen, "downed": downed, "stunned": float(game.me.get("stun", 0.0)) > 0.0, "crouching": inp.has(PlayerInput.CROUCH) and not downed}
-	motor.step(body, inp, state, inp.dt)
-	history.append([inp.seq, inp, body.global_position])
+	var state := {"frozen": frozen, "downed": downed, "stunned": float(game.me.get("stun", 0.0)) > 0.0, "crouching": inp.has(PlayerInput.CROUCH) and not downed, "air": air}
+	air = motor.step(body, inp, state, inp.dt)
+	history.append([inp.seq, inp, body.global_position, air])
+	avatar.visible = air != PlayerMotor.Air.PLANE
+	avatar.rotation.x = lerpf(avatar.rotation.x, -1.25 if air == PlayerMotor.Air.FREEFALL else 0.0, 0.15)
+	canopy.visible = air == PlayerMotor.Air.CHUTE
+	canopy.rotation.y = avatar.rotation.y
 	if history.size() > 180:
 		history.pop_front()
 	var v := Vector2(body.velocity.x, body.velocity.z)
@@ -225,24 +234,31 @@ func simulate(inp: PlayerInput, frozen: bool) -> void:
 
 
 ## Server correction: rewind to the acknowledged state and replay newer inputs.
-func reconcile(ack: int, server_pos: Vector3, server_vel: Vector3, frozen: bool) -> void:
+func reconcile(ack: int, server_pos: Vector3, server_vel: Vector3, frozen: bool, server_air: int = 0) -> void:
 	while not history.is_empty() and int(history[0][0]) < ack:
 		history.pop_front()
 	var predicted := server_pos
+	var predicted_air := server_air
 	if not history.is_empty() and int(history[0][0]) == ack:
 		predicted = history[0][2]
+		predicted_air = int(history[0][3])
 		history.pop_front()
 	elif history.is_empty():
 		predicted = body.global_position
-	if predicted.distance_to(server_pos) <= RECONCILE_ERROR:
+		predicted_air = air
+	# The plane moves fast: allow more drift before snapping while riding it.
+	var tolerance := RECONCILE_ERROR * (8.0 if server_air == PlayerMotor.Air.PLANE else 1.0)
+	if predicted.distance_to(server_pos) <= tolerance and predicted_air == server_air:
 		return
 	body.global_position = server_pos
 	body.velocity = server_vel
+	air = server_air
 	var downed := game.my_state() == Vitals.State.DOWNED
 	for h: Array in history:
 		var inp: PlayerInput = h[1]
-		motor.step(body, inp, {"frozen": frozen, "downed": downed, "crouching": inp.has(PlayerInput.CROUCH)}, inp.dt)
+		air = motor.step(body, inp, {"frozen": frozen, "downed": downed, "crouching": inp.has(PlayerInput.CROUCH), "air": air}, inp.dt)
 		h[2] = body.global_position
+		h[3] = air
 
 
 func update_camera(delta: float, spectate_target: Vector3 = Vector3.INF) -> void:
@@ -253,7 +269,12 @@ func update_camera(delta: float, spectate_target: Vector3 = Vector3.INF) -> void
 	_yaw_pivot.global_position = anchor + Basis(Vector3.UP, yaw) * Vector3(shoulder.x, 0, 0) + Vector3(0, shoulder.y, 0)
 	_yaw_pivot.rotation = Vector3(0, yaw, 0)
 	_pitch_pivot.rotation = Vector3(pitch, 0, 0)
-	_arm.spring_length = lerpf(ARM_LENGTH, AIM_ARM_LENGTH, _aim_blend)
+	var arm := ARM_LENGTH
+	if air == PlayerMotor.Air.PLANE:
+		arm = 26.0
+	elif air != PlayerMotor.Air.NONE:
+		arm = 7.0
+	_arm.spring_length = move_toward(_arm.spring_length, lerpf(arm, AIM_ARM_LENGTH, _aim_blend), delta * 30.0)
 	_arm.add_excluded_object(body.get_rid())
 	camera.fov = lerpf(FOV, AIM_FOV, _aim_blend)
 	_update_aim_point()

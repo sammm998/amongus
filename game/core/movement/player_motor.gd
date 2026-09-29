@@ -3,15 +3,58 @@ extends RefCounted
 ## Deterministic character movement shared by server simulation and client
 ## prediction. Works on a CharacterBody3D; numbers from data/movement.json.
 
+## Air states of the opening drop (GAME_SPEC: everyone jumps from a plane).
+enum Air { NONE, PLANE, FREEFALL, CHUTE }
+
 var cfg: Dictionary
+var drop_cfg: Dictionary
 
 
-func _init(movement_cfg: Dictionary) -> void:
+func _init(movement_cfg: Dictionary, p_drop_cfg: Dictionary = {}) -> void:
 	cfg = movement_cfg
+	drop_cfg = p_drop_cfg
 
 
-## state: {crouching: bool, downed: bool, frozen: bool, stunned: bool, speed_mult: float}
-func step(body: CharacterBody3D, input: PlayerInput, state: Dictionary, dt: float) -> void:
+## state: {crouching: bool, downed: bool, frozen: bool, stunned: bool, speed_mult: float, air: Air}
+## Returns the air state after the step (NONE once on the ground).
+func step(body: CharacterBody3D, input: PlayerInput, state: Dictionary, dt: float) -> int:
+	var air: int = state.get("air", Air.NONE)
+	if air == Air.PLANE:
+		# Riding the plane: carried along at the plane's velocity (set by the server).
+		body.global_position += body.velocity * dt
+		return Air.PLANE
+	if air == Air.FREEFALL or air == Air.CHUTE:
+		return _air_step(body, input, air, dt)
+	_ground_step(body, input, state, dt)
+	return Air.NONE
+
+
+## Skydiving and gliding: steer with the move input, fall at a capped speed.
+## Freefall opens the canopy automatically at `chute_open_altitude`.
+func _air_step(body: CharacterBody3D, input: PlayerInput, air: int, dt: float) -> int:
+	var chute := air == Air.CHUTE
+	var fall := float(drop_cfg["chute_fall_speed"])
+	var move_speed := float(drop_cfg["chute_move_speed"])
+	if not chute:
+		fall = lerpf(float(drop_cfg["freefall_fall_speed"]), float(drop_cfg["freefall_dive_speed"]), clampf(input.move.y, 0.0, 1.0))
+		move_speed = float(drop_cfg["freefall_move_speed"])
+	var wish := Basis(Vector3.UP, input.yaw) * Vector3(input.move.x, 0, -input.move.y)
+	var vel := body.velocity
+	var horizontal := Vector3(vel.x, 0, vel.z).move_toward(wish * move_speed, float(drop_cfg["air_steer_acceleration"]) * dt)
+	vel.x = horizontal.x
+	vel.z = horizontal.z
+	vel.y = move_toward(vel.y, -fall, float(drop_cfg["vertical_acceleration"]) * dt)
+	body.velocity = vel
+	body.move_and_slide()
+	if body.is_on_floor():
+		body.velocity = Vector3(vel.x, 0, vel.z) * 0.3
+		return Air.NONE
+	if not chute and body.global_position.y <= float(drop_cfg["chute_open_altitude"]):
+		return Air.CHUTE
+	return air
+
+
+func _ground_step(body: CharacterBody3D, input: PlayerInput, state: Dictionary, dt: float) -> void:
 	var vel := body.velocity
 	var on_floor := body.is_on_floor()
 	var frozen: bool = state.get("frozen", false)

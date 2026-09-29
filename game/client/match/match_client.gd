@@ -115,12 +115,45 @@ func _on_snapshot(p: Dictionary) -> void:
 	if not me.has("pos"):
 		return
 	var server_pos: Vector3 = me["pos"]
-	if _teleport_pending or server_pos.distance_to(local.body.global_position) > 6.0:
+	var server_air := int(me.get("air", 0))
+	var snap_distance := 6.0 if server_air == PlayerMotor.Air.NONE else 30.0
+	if _teleport_pending or server_pos.distance_to(local.body.global_position) > snap_distance:
 		_teleport_pending = false
-		local.teleport(server_pos)
+		local.teleport(server_pos, me["vel"], server_air)
 		return
 	var frozen := not (game.phase in MOVE_PHASES) or game.is_spectator()
-	local.reconcile(int(p["ack"]), server_pos, me["vel"], frozen)
+	local.reconcile(int(p["ack"]), server_pos, me["vel"], frozen, server_air)
+
+
+const AIRBORNE_FLAGS := 256 | 512 | 1024
+var _plane: Node3D
+
+
+## Transport plane of the opening drop + the jump prompt.
+func _update_drop() -> void:
+	var d: Dictionary = game.info.get("drop", {})
+	var t := game.server_now(NetworkManager.local_time())
+	if d.is_empty() or t > float(d["end"]):
+		if _plane != null:
+			_plane.visible = false
+		hud.set_drop_hint("")
+		return
+	if _plane == null:
+		_plane = DropVisuals.plane()
+		add_child(_plane)
+	var dir: Vector3 = d["dir"]
+	var pos: Vector3 = d["from"] + dir * float(d["speed"]) * (t - float(d["start"]))
+	_plane.visible = true
+	_plane.global_transform = Transform3D(Basis.looking_at(dir, Vector3.UP), pos + Vector3(0, 1.0, 0))
+	var hint := ""
+	if local.air == PlayerMotor.Air.PLANE:
+		var jump_key := "TAP JUMP" if InputRouter.mode == InputClassifier.Mode.TOUCH else "PRESS SPACE"
+		hint = "%s TO JUMP" % jump_key if t >= float(d["t_open"]) else "OVER THE SEA — JUMP OPENS IN %d s" % ceili(float(d["t_open"]) - t)
+	elif local.air == PlayerMotor.Air.FREEFALL:
+		hint = "FREEFALL — steer with WASD, hold forward to dive"
+	elif local.air == PlayerMotor.Air.CHUTE:
+		hint = "PARACHUTE OPEN"
+	hud.set_drop_hint(hint)
 
 
 func _process(delta: float) -> void:
@@ -135,7 +168,8 @@ func _process(delta: float) -> void:
 		var av := _avatar(id)
 		av.apply(s[0], s[1], s[3], s[5], delta)
 		av.set_emote(s[6], delta)
-		_footsteps(av, s[0], delta)
+		if int(s[5]) & AIRBORNE_FLAGS == 0:
+			_footsteps(av, s[0], delta)
 		seen[id] = true
 	for b: Array in latest.get("bodies", []):
 		if b[0] == game.my_id():
@@ -152,8 +186,9 @@ func _process(delta: float) -> void:
 	_update_tracers(delta)
 	_update_evidence()
 	_update_pings(delta)
+	_update_drop()
 	var spectating := game.is_spectator() or game.my_state() == Vitals.State.ELIMINATED
-	local.avatar.visible = not game.is_spectator()
+	local.avatar.visible = not game.is_spectator() and local.air != PlayerMotor.Air.PLANE
 	var target := Vector3.INF
 	if spectating and not avatars.is_empty():
 		var living: Array = avatars.values().filter(func(a: RemoteAvatar) -> bool: return a.state == Vitals.State.ALIVE)
@@ -221,7 +256,7 @@ func _update_tags(delta: float) -> void:
 			var q := PhysicsRayQueryParameters3D.create(eye, a.feet + Vector3(0, 1.6, 0), MapBuilder.WORLD_LAYER)
 			_los_cache[a.player_id] = space.intersect_ray(q).is_empty()
 	for a: RemoteAvatar in avatars.values():
-		a.update_tag(eye, max_d, _los_cache.get(a.player_id, false), game.is_suspect(a.player_id))
+		a.update_tag(eye, max_d, _los_cache.get(a.player_id, false) and a.avatar.visible, game.is_suspect(a.player_id))
 
 
 func _update_lights() -> void:

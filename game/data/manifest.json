@@ -17,6 +17,7 @@
     "items",
     "cosmetics",
     "info_systems",
-    "time_of_day"
+    "time_of_day",
+    "drop"
   ]
 }

@@ -22,6 +22,7 @@ var _bubble_time := 0.0
 var _emote: Label3D
 var _crate: MeshInstance3D
 var _emote_t := 0.0
+var _canopy: Node3D
 
 
 func setup(id: int, display_name: String, suit: Color, accent: Color) -> void:
@@ -67,6 +68,8 @@ func setup(id: int, display_name: String, suit: Color, accent: Color) -> void:
 	_flash.omni_range = 6.0
 	_flash.position = Vector3(0.35, 1.3, -0.6)
 	avatar.add_child(_flash)
+	_canopy = DropVisuals.canopy()
+	add_child(_canopy)
 
 
 func _label(text: String, pos: Vector3, font_size: int, color: Color) -> Label3D:
@@ -100,6 +103,11 @@ func apply(pos: Vector3, yaw: float, p_state: int, flags: int, delta: float) -> 
 	_crate.visible = flags & 128 != 0 and p_state == Vitals.State.ALIVE
 	_bubble_time = maxf(0.0, _bubble_time - delta)
 	_bubble.visible = _bubble_time > 0.0
+	# Opening drop: hidden inside the plane, face-down in freefall, canopy when gliding.
+	avatar.visible = flags & 256 == 0
+	avatar.rotation.x = lerpf(avatar.rotation.x, -1.25 if flags & 512 != 0 else 0.0, clampf(delta * 8.0, 0.0, 1.0))
+	_canopy.visible = flags & 1024 != 0
+	_canopy.rotation.y = avatar.rotation.y
 	_flash_time = maxf(0.0, _flash_time - delta)
 	_flash.light_energy = 6.0 * _flash_time / 0.06
 

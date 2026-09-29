@@ -44,7 +44,7 @@ const SCHEMAS := {
 	Msg.PONG: {"t": TYPE_INT},
 	Msg.INPUT: {"seq": TYPE_INT, "move": TYPE_VECTOR2, "yaw": TYPE_FLOAT, "pitch": TYPE_FLOAT, "buttons": TYPE_INT, "slot": TYPE_INT, "aim": TYPE_VECTOR3, "view": TYPE_FLOAT, "dt": TYPE_FLOAT},
 	Msg.ACTION: {"kind": TYPE_STRING, "target": TYPE_INT, "text": TYPE_STRING},
-	Msg.MATCH_INFO: {"map": TYPE_STRING, "phase": TYPE_STRING, "time_left": TYPE_FLOAT, "elapsed": TYPE_FLOAT, "time_limit": TYPE_FLOAT, "players": TYPE_ARRAY, "host": TYPE_INT, "mode": TYPE_STRING, "time_of_day": TYPE_STRING},
+	Msg.MATCH_INFO: {"map": TYPE_STRING, "phase": TYPE_STRING, "time_left": TYPE_FLOAT, "elapsed": TYPE_FLOAT, "time_limit": TYPE_FLOAT, "players": TYPE_ARRAY, "host": TYPE_INT, "mode": TYPE_STRING, "time_of_day": TYPE_STRING, "drop": TYPE_DICTIONARY},
 	Msg.SNAPSHOT: {"tick": TYPE_INT, "time": TYPE_FLOAT, "ack": TYPE_INT, "players": TYPE_ARRAY, "bodies": TYPE_ARRAY, "loot": TYPE_ARRAY, "me": TYPE_DICTIONARY},
 	Msg.ROLE: {"role": TYPE_STRING, "allies": TYPE_ARRAY},
 	Msg.TASKS: {"tasks": TYPE_ARRAY},

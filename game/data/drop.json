@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "altitude": 220.0,
+  "plane_speed": 55.0,
+  "plane_margin_m": 150.0,
+  "jump_coast_margin_m": 40.0,
+  "exit_forward_fraction": 0.35,
+  "freefall_fall_speed": 24.0,
+  "freefall_dive_speed": 36.0,
+  "freefall_move_speed": 16.0,
+  "chute_open_altitude": 75.0,
+  "chute_fall_speed": 6.0,
+  "chute_move_speed": 9.0,
+  "air_steer_acceleration": 14.0,
+  "vertical_acceleration": 30.0,
+  "bot_jump_window": [0.1, 0.8],
+  "ashore_below_y": -1.0
+}

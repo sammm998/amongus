@@ -26,26 +26,47 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
+var _silhouette: ImageTexture
+
+
+## Map area: the playable boundary ellipse (falls back to the slice extent).
+func _bounds() -> Rect2:
+	var b: Dictionary = map.raw.get("boundary", {})
+	if b.is_empty():
+		return Rect2(-220, -170, 440, 320)
+	return Rect2(float(b["x"]) - float(b["rx"]), float(b["z"]) - float(b["rz"]), float(b["rx"]) * 2.0, float(b["rz"]) * 2.0)
+
+
+## Island silhouette from the terrain, baked once into a small texture.
+func _bake_silhouette(bounds: Rect2) -> ImageTexture:
+	var w := 220
+	var h := maxi(1, int(w * bounds.size.y / bounds.size.x))
+	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
+	for py in h:
+		for px in w:
+			var x := bounds.position.x + (px + 0.5) * bounds.size.x / w
+			var z := bounds.position.y + (py + 0.5) * bounds.size.y / h
+			var ht := map.height(x, z)
+			var c := Color(0, 0, 0, 0)
+			if ht > 0.0:
+				c = Color(0.2, 0.42, 0.25) if ht > 2.0 else Color(0.85, 0.78, 0.6)
+				if ht > 14.0:
+					c = c.lerp(Color(0.45, 0.45, 0.42), clampf((ht - 14.0) / 20.0, 0.0, 1.0))
+			img.set_pixel(px, py, c)
+	return ImageTexture.create_from_image(img)
+
+
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.02, 0.05, 0.1, 0.9))
-	var bounds := Rect2(-220, -170, 440, 320)
+	var bounds := _bounds()
 	var scale := minf((size.x - 80) / bounds.size.x, (size.y - 120) / bounds.size.y)
 	var origin := Vector2((size.x - bounds.size.x * scale) * 0.5, 70)
 	var to_px := func(x: float, z: float) -> Vector2: return origin + (Vector2(x, z) - bounds.position) * scale
 	var font := get_theme_default_font()
 	draw_string(font, Vector2(30, 44), "ISLAND MAP  ·  ACTIVITY", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, UITheme.CYAN)
-	# Island silhouette from the height field (coarse).
-	var step := 8.0
-	var y := bounds.position.y
-	while y < bounds.end.y:
-		var x := bounds.position.x
-		while x < bounds.end.x:
-			var h := map.height(x, y)
-			if h > 0.0:
-				var c := Color(0.2, 0.42, 0.25) if h > 2.0 else Color(0.85, 0.78, 0.6)
-				draw_rect(Rect2(to_px.call(x, y), Vector2(step * scale + 1, step * scale + 1)), c)
-			x += step
-		y += step
+	if _silhouette == null:
+		_silhouette = _bake_silhouette(bounds)
+	draw_texture_rect(_silhouette, Rect2(origin, bounds.size * scale), false)
 	for road: Array in map.raw.get("roads", []):
 		for i in road.size() - 1:
 			draw_line(to_px.call(road[i][0], road[i][1]), to_px.call(road[i + 1][0], road[i + 1][1]), Color(0.3, 0.3, 0.32), 4.0)

@@ -1,5 +1,5 @@
 {
-  "protocol_version": 4,
+  "protocol_version": 5,
   "default_port": 24650,
   "max_clients": 24,
   "server_tick_rate": 30,
