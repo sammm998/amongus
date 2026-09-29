@@ -9,6 +9,7 @@ const SPRINT_EDGE := 0.92
 
 var state: TouchInputState
 var context_label := ""
+var inspect_label := ""
 var context_progress := 0.0
 var flashlight_available := false
 var buttons: Array = []  # [{id, center: Vector2 (relative 0..1 from bottom-right), radius, label, toggle}]
@@ -31,6 +32,7 @@ func _ready() -> void:
 		{"id": "reload", "offset": Vector2(-70, -300), "radius": 38.0, "label": "RELOAD"},
 		{"id": "interact", "offset": Vector2(-300, -110), "radius": 50.0, "label": "USE"},
 		{"id": "flashlight", "offset": Vector2(-70, -410), "radius": 32.0, "label": "LIGHT"},
+		{"id": "inspect", "offset": Vector2(-420, -160), "radius": 40.0, "label": "INSPECT"},
 	]
 
 
@@ -43,6 +45,8 @@ func _visible_button(b: Dictionary) -> bool:
 		return flashlight_available
 	if b["id"] == "interact":
 		return not context_label.is_empty()
+	if b["id"] == "inspect":
+		return not inspect_label.is_empty()
 	return true
 
 

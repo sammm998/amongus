@@ -17,6 +17,11 @@ var crouch := false
 var _last_pos := Vector3.ZERO
 var _flash_time := 0.0
 var _flash: OmniLight3D
+var _bubble: Label3D
+var _bubble_time := 0.0
+var _emote: Label3D
+var _crate: MeshInstance3D
+var _emote_t := 0.0
 
 
 func setup(id: int, display_name: String, suit: Color, accent: Color) -> void:
@@ -26,6 +31,7 @@ func setup(id: int, display_name: String, suit: Color, accent: Color) -> void:
 	avatar.accent_color = accent
 	avatar.phase_offset = id * 0.37
 	add_child(avatar)
+	avatar.set_render_layers(RenderLayers.AVATARS)
 	name_tag = _label(display_name, Vector3(0, 2.35, 0), 48, Color.WHITE)
 	suspect_tag = _label("⚠ SUSPECT", Vector3(0, 2.7, 0), 36, UITheme.AMBER)
 	suspect_tag.visible = false
@@ -36,6 +42,25 @@ func setup(id: int, display_name: String, suit: Color, accent: Color) -> void:
 	flashlight.position = Vector3(0.2, 1.4, -0.3)
 	flashlight.visible = false
 	avatar.add_child(flashlight)
+	_bubble = _label("", Vector3(0, 3.1, 0), 34, Color(0.05, 0.08, 0.14))
+	_bubble.outline_modulate = Color(1, 1, 1, 0.95)
+	_bubble.outline_size = 18
+	_bubble.width = 400.0
+	_bubble.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_bubble.visible = false
+	_emote = _label("", Vector3(0, 2.95, 0), 64, UITheme.AMBER)
+	_emote.visible = false
+	_crate = MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.55, 0.4, 0.4)
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.95, 0.95, 0.95)
+	box.material = mat
+	_crate.mesh = box
+	_crate.position = Vector3(0, 1.0, -0.45)
+	_crate.layers = RenderLayers.AVATARS
+	_crate.visible = false
+	avatar.add_child(_crate)
 	_flash = OmniLight3D.new()
 	_flash.light_color = Color(1.0, 0.8, 0.4)
 	_flash.light_energy = 0.0
@@ -72,8 +97,31 @@ func apply(pos: Vector3, yaw: float, p_state: int, flags: int, delta: float) -> 
 	avatar.downed = p_state != Vitals.State.ALIVE
 	flashlight.visible = flags & 16 != 0 and p_state == Vitals.State.ALIVE
 	avatar.scale = Vector3(1, 0.8 if crouch else 1.0, 1)
+	_crate.visible = flags & 128 != 0 and p_state == Vitals.State.ALIVE
+	_bubble_time = maxf(0.0, _bubble_time - delta)
+	_bubble.visible = _bubble_time > 0.0
 	_flash_time = maxf(0.0, _flash_time - delta)
 	_flash.light_energy = 6.0 * _flash_time / 0.06
+
+
+const EMOTE_ICONS := {"wave": "* waves *", "point": "* points *", "shrug": "* shrugs *", "cheer": "\\o/", "facepalm": "* facepalm *", "dance": "* dances *"}
+
+
+func set_emote(emote_id: String, delta: float) -> void:
+	_emote.visible = not emote_id.is_empty() and state == Vitals.State.ALIVE
+	if _emote.visible:
+		_emote.text = EMOTE_ICONS.get(emote_id, emote_id)
+		_emote_t += delta
+		avatar.position.y = absf(sin(_emote_t * 6.0)) * 0.25 if emote_id in ["dance", "cheer"] else 0.0
+	else:
+		_emote_t = 0.0
+		avatar.position.y = 0.0
+
+
+## Proximity text bubble above the head (GAME_SPEC §8.5).
+func say(text: String, seconds: float) -> void:
+	_bubble.text = text
+	_bubble_time = seconds
 
 
 func muzzle_flash() -> void:

@@ -19,7 +19,7 @@ All in-game geometry so far is built procedurally in code (Godot primitives, Sur
 
 ## Audio
 
-None yet.
+All sounds are synthesized at runtime in `game/client/match/audio/sound_bank.gd` (original, no external files).
 
 ## Fonts
 

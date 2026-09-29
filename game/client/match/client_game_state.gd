@@ -14,6 +14,8 @@ signal results_received(payload: Dictionary)
 signal chat_received(payload: Dictionary)
 signal event_received(kind: String, data: Dictionary)
 signal snapshot_received(payload: Dictionary)
+signal replay_received(payload: Dictionary)
+signal activity_changed
 
 const SNAPSHOT_BUFFER := 32
 
@@ -32,6 +34,9 @@ var results: Dictionary = {}
 var snapshots: Array = []
 var me: Dictionary = {}
 var chat_log: Array = []
+var activity: Array = []       # [{kind, district, age}]
+var comms_up := true
+var evidence: Array = []       # [[id, kind, pos]]
 var server_time_offset := 0.0   # server_time - local_time
 var _offset_ready := false
 
@@ -49,6 +54,9 @@ func reset() -> void:
 	snapshots = []
 	me = {}
 	chat_log = []
+	activity = []
+	evidence = []
+	comms_up = true
 	_offset_ready = false
 
 
@@ -101,6 +109,14 @@ func handle(type: int, p: Dictionary, local_time: float) -> void:
 			chat_received.emit(p)
 		Protocol.Msg.EVENT:
 			event_received.emit(p["kind"], p["data"])
+		Protocol.Msg.ACTIVITY:
+			activity = p["blips"]
+			comms_up = p["comms"]
+			activity_changed.emit()
+		Protocol.Msg.EVIDENCE:
+			evidence = p["items"]
+		Protocol.Msg.REPLAY:
+			replay_received.emit(p)
 		Protocol.Msg.SNAPSHOT:
 			_add_snapshot(p, local_time)
 			me = p["me"]
@@ -145,7 +161,7 @@ func sample_players(t: float) -> Dictionary:
 		prev[e[0]] = e
 	for e: Array in b["players"]:
 		var pe: Array = prev.get(e[0], e)
-		out[e[0]] = [(pe[1] as Vector3).lerp(e[1], f), lerp_angle(pe[2], e[2], f), lerpf(pe[3], e[3], f), e[4], e[5], e[6]]
+		out[e[0]] = [(pe[1] as Vector3).lerp(e[1], f), lerp_angle(pe[2], e[2], f), lerpf(pe[3], e[3], f), e[4], e[5], e[6], e[7] if e.size() > 7 else ""]
 	return out
 
 

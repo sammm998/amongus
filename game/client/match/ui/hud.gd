@@ -21,6 +21,17 @@ var results_panel: ResultsPanel
 var role_reveal: RoleReveal
 var sabotage_panel: SabotagePanel
 var cameras: CameraTerminal
+var comms: CommsPanel
+var full_map: FullMap
+var ghost_root: Node3D
+var aim_point_provider: Callable
+var _inspect_label: Label
+var _inspect_bar: ProgressBar
+var _inspect_panel: PanelContainer
+var _info_panel: PanelContainer
+var _info_label: Label
+var _info_time := 0.0
+var _comms_button: Button
 var _hud: Control
 var _objective: Label
 var _security_bar: ProgressBar
@@ -60,7 +71,9 @@ var _hit_time := 0.0
 var _hurt: Array = []  # [[dir_angle, time]]
 
 
-func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, p_camera_points: Dictionary, p_world: World3D) -> void:
+func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, p_camera_points: Dictionary, p_world: World3D, p_ghost_root: Node3D = null, p_aim: Callable = Callable()) -> void:
+	ghost_root = p_ghost_root
+	aim_point_provider = p_aim
 	game = p_game
 	map = p_map
 	touch_state = p_touch
@@ -211,6 +224,38 @@ func _build_hud() -> void:
 	pcol.add_child(_prompt_label)
 	_prompt_bar = UIKit.bar(UITheme.CYAN, Vector2(290, 8))
 	pcol.add_child(_prompt_bar)
+	_inspect_panel = UIKit.panel(Vector2(320, 0))
+	_inspect_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_inspect_panel.position = Vector2(-160, 120)
+	_hud.add_child(_inspect_panel)
+	var icol := VBoxContainer.new()
+	_inspect_panel.add_child(icol)
+	_inspect_label = UIKit.label("", 16, UITheme.AMBER)
+	_inspect_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icol.add_child(_inspect_label)
+	_inspect_bar = UIKit.bar(UITheme.AMBER, Vector2(290, 6))
+	icol.add_child(_inspect_bar)
+	_info_panel = UIKit.panel(Vector2(360, 0), 0.9)
+	_info_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+	_info_panel.position = Vector2(-390, -60)
+	_info_panel.visible = false
+	_hud.add_child(_info_panel)
+	_info_label = UIKit.label("", 16)
+	_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_info_label.custom_minimum_size = Vector2(330, 0)
+	_info_panel.add_child(_info_label)
+	_comms_button = UIKit.button("COMMS", func() -> void: comms.open(), 16, Vector2(110, 44))
+	_comms_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_comms_button.position = Vector2(-130, 150)
+	_comms_button.visible = false
+	_hud.add_child(_comms_button)
+	var map_button := UIKit.button("MAP", func() -> void: toggle_map(), 16, Vector2(110, 44))
+	map_button.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	map_button.position = Vector2(196, 18)
+	map_button.set_meta("touch_only", true)
+	map_button.visible = false
+	_hud.add_child(map_button)
+	_hud.set_meta("map_button", map_button)
 	_banner = UIKit.label("", 36, UITheme.AMBER)
 	_banner.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_banner.position = Vector2(-400, 150)
@@ -289,7 +334,21 @@ func _build_overlays() -> void:
 	cameras.map = map
 	cameras.camera_points = camera_points
 	cameras.world_3d = world_3d
+	cameras.ghost_root = ghost_root
 	root.add_child(cameras)
+	full_map = FullMap.new()
+	full_map.map = map
+	full_map.game = game
+	root.add_child(full_map)
+	comms = CommsPanel.new()
+	comms.game = game
+	comms.aim_point_provider = aim_point_provider
+	comms.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	comms.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	comms.closed.connect(func() -> void:
+		if InputRouter.mode == InputClassifier.Mode.DESKTOP and not is_blocking_input():
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED)
+	root.add_child(comms)
 	results_panel = ResultsPanel.new()
 	results_panel.game = game
 	results_panel.visible = false
@@ -320,8 +379,18 @@ func _build_overlays() -> void:
 
 # ---------------------------------------------------------------- update ---
 
+func toggle_map() -> void:
+	full_map.visible = not full_map.visible
+
+
+func open_comms() -> void:
+	if game.my_state() == Vitals.State.DOWNED or game.phase == "INCIDENT_MEETING":
+		return
+	comms.open()
+
+
 func is_blocking_input() -> bool:
-	return _menu.visible or meeting_panel.visible or results_panel.visible or cameras.visible or _chat_input.visible or (role_reveal.visible and game.phase == "ROLE_REVEAL")
+	return comms.visible or full_map.visible or _menu.visible or meeting_panel.visible or results_panel.visible or cameras.visible or _chat_input.visible or (role_reveal.visible and game.phase == "ROLE_REVEAL")
 
 
 func toggle_menu() -> void:
@@ -399,6 +468,13 @@ func update_hud(delta: float, local_pos: Vector3, heading: float, dark_here: boo
 		sabotage_panel.visible = false
 	_update_weapon(me)
 	_update_prompt(me)
+	_update_inspect(me)
+	_info_time -= delta
+	_info_panel.visible = _info_time > 0.0
+	_comms_button.visible = touch_mode and in_match and state == Vitals.State.ALIVE
+	(_hud.get_meta("map_button") as Button).visible = touch_mode and in_match
+	full_map.own_pos = local_pos
+	full_map.heading = heading
 	# Minimap.
 	minimap.center = local_pos
 	minimap.heading = heading
@@ -468,6 +544,23 @@ func _update_prompt(me: Dictionary) -> void:
 	touch.queue_redraw()
 
 
+func _update_inspect(me: Dictionary) -> void:
+	var ins: Dictionary = me.get("inspect", {})
+	var show := not ins.is_empty() and game.phase in ["ACTIVE", "RESUMING"]
+	_inspect_panel.visible = show
+	touch.inspect_label = "INSPECT" if show else ""
+	if show:
+		var key := "Q" if InputRouter.mode == InputClassifier.Mode.DESKTOP else ("LB" if InputRouter.mode == InputClassifier.Mode.CONTROLLER else "INSPECT")
+		_inspect_label.text = "[%s] %s" % [key, ins["label"]]
+		var hold := float(ins["hold"])
+		_inspect_bar.value = float(ins["progress"]) / hold * 100.0 if hold > 0.0 else 0.0
+
+
+func show_info(text: String, seconds: float = 7.0) -> void:
+	_info_label.text = text
+	_info_time = seconds
+
+
 func _draw_crosshair() -> void:
 	if game.phase in ["INCIDENT_MEETING", "ROLE_REVEAL"] or game.my_state() != Vitals.State.ALIVE:
 		return
@@ -517,6 +610,16 @@ func _on_event(kind: String, data: Dictionary) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		"revived":
 			_show_banner("YOU WERE REVIVED", UITheme.CYAN)
+		"inspection":
+			if data.get("known", false):
+				show_info("BODY INSPECTION — %s\nEstimated time: ~%d s ago (±15 s)\nDamage: %s\nWeapon family: %s\nRange: %s\nLast hit from: %s\n(The attacker cannot be determined.)" % [data.get("name", "?"), int(data["seconds_ago"]), data["damage_type"], data["weapon_family"], data["range"], data["direction"]])
+			else:
+				show_info("BODY INSPECTION — %s\nNo clear evidence of what happened." % data.get("name", "?"))
+		"evidence_info":
+			var what := "Shell casing" if data["kind"] == "casing" else "Impact mark"
+			show_info("%s — weapon family: %s\nLeft roughly %d s ago." % [what, data["family"], int(data["seconds_ago"])], 5.0)
+		"coop_wait", "repair_progress":
+			_show_banner(data["text"], UITheme.CYAN)
 		"eliminated":
 			_show_banner("YOU WERE ELIMINATED", UITheme.DANGER)
 

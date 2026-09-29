@@ -47,7 +47,14 @@ func _ready() -> void:
 	local.teleport(spawns[0] if not game.me.has("pos") else game.me["pos"])
 	hud = MatchHUD.new()
 	add_child(hud)
-	hud.setup(game, map, touch_state, world.get_meta("camera_points"), get_viewport().world_3d)
+	var ghosts := Node3D.new()
+	ghosts.name = "ReplayGhosts"
+	add_child(ghosts)
+	hud.setup(game, map, touch_state, world.get_meta("camera_points"), get_viewport().world_3d, ghosts, func() -> Vector3: return local.aim_point)
+	sound = SoundPlayer.new()
+	add_child(sound)
+	game.chat_received.connect(_on_chat)
+	game.world_changed.connect(_sync_doors)
 	hud.leave_requested.connect(_leave)
 	game.snapshot_received.connect(_on_snapshot)
 	game.event_received.connect(_on_event)
@@ -115,7 +122,10 @@ func _process(delta: float) -> void:
 		if id == game.my_id():
 			continue
 		var s: Array = sampled[id]
-		_avatar(id).apply(s[0], s[1], s[3], s[5], delta)
+		var av := _avatar(id)
+		av.apply(s[0], s[1], s[3], s[5], delta)
+		av.set_emote(s[6], delta)
+		_footsteps(av, s[0], delta)
 		seen[id] = true
 	for b: Array in latest.get("bodies", []):
 		if b[0] == game.my_id():
@@ -130,6 +140,8 @@ func _process(delta: float) -> void:
 	_update_tags(delta)
 	_update_lights()
 	_update_tracers(delta)
+	_update_evidence()
+	_update_pings(delta)
 	var spectating := game.is_spectator() or game.my_state() == Vitals.State.ELIMINATED
 	local.avatar.visible = not game.is_spectator()
 	var target := Vector3.INF
@@ -152,6 +164,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("fire") and (game.is_spectator() or game.my_state() == Vitals.State.ELIMINATED):
 		_spectate_index += 1
+	elif event.is_action_pressed("full_map") and not hud.comms.visible and not hud.meeting_panel.visible:
+		hud.toggle_map()
+		get_viewport().set_input_as_handled()
+	elif (event.is_action_pressed("quick_chat") or event.is_action_pressed("emote")) and not hud.is_blocking_input():
+		hud.open_comms()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ping") and not hud.is_blocking_input() and game.phase in MOVE_PHASES:
+		var p := local.aim_point
+		NetworkManager.send_action("ping", 0, "location|%f|%f|%f" % [p.x, p.y, p.z])
+		get_viewport().set_input_as_handled()
 
 
 # --------------------------------------------------------------- visuals ---
@@ -249,12 +271,164 @@ func _loot_visual(item: String, rarity: String) -> Node3D:
 
 
 func _on_event(kind: String, data: Dictionary) -> void:
-	if kind != "shot":
-		return
+	match kind:
+		"ping":
+			_add_ping(data)
+			sound.play("ping", -6.0)
+			return
+		"alert":
+			sound.play("horn" if String(data["text"]).contains("MEETING") or String(data["text"]).contains("INCIDENT") else "alert", -4.0)
+			return
+		"hit":
+			sound.play("hit", -8.0)
+			return
+		"task_step":
+			sound.play("task", -6.0)
+			return
+		"downed", "eliminated":
+			sound.play("down", -2.0)
+			return
+		"shot":
+			pass
+		_:
+			return
 	var shooter: int = data["shooter"]
+	var family: String = data["family"]
+	var origin: Vector3 = data["origin"]
+	var audible := 400.0 if family == "sniper" else 250.0
+	sound.play_at(SoundBank.shot_for_family(family), origin, audible, 0.0, randf_range(0.94, 1.06))
 	if shooter > 0 and avatars.has(shooter):
 		avatars[shooter].muzzle_flash()
 	_tracer(data["origin"], data["end"], data["family"])
+
+
+# ------------------------------------------------------------- M3 visuals ---
+
+var sound: SoundPlayer
+var _evidence_nodes: Dictionary = {}   # id -> Node3D
+var _ping_nodes: Array = []            # [Node3D, time_left]
+var _step_accum: Dictionary = {}       # player id -> metres since last footstep
+var _local_step := 0.0
+var _last_local := Vector3.ZERO
+
+
+func _footsteps(av: RemoteAvatar, pos: Vector3, delta: float) -> void:
+	var moved: float = Vector2(pos.x - av.get_meta("last_step_pos", pos).x, pos.z - av.get_meta("last_step_pos", pos).z).length()
+	av.set_meta("last_step_pos", pos)
+	if av.state != Vitals.State.ALIVE or moved > 3.0:
+		return
+	var acc := float(_step_accum.get(av.player_id, 0.0)) + moved
+	if acc > 1.6:
+		acc = 0.0
+		if local.camera.global_position.distance_to(pos) < 30.0:
+			sound.play_at("footstep", pos, 30.0, -10.0, randf_range(0.85, 1.15))
+	_step_accum[av.player_id] = acc
+
+
+func _update_evidence() -> void:
+	var seen := {}
+	for e: Array in game.evidence:
+		var id: int = e[0]
+		seen[id] = true
+		if _evidence_nodes.has(id):
+			continue
+		var mi := MeshInstance3D.new()
+		var mat := StandardMaterial3D.new()
+		if e[1] == "casing":
+			var m := CylinderMesh.new()
+			m.top_radius = 0.025
+			m.bottom_radius = 0.025
+			m.height = 0.08
+			mat.albedo_color = Color(0.85, 0.65, 0.25)
+			mat.metallic = 0.8
+			mat.roughness = 0.3
+			m.material = mat
+			mi.mesh = m
+			mi.rotation = Vector3(PI * 0.5, randf() * TAU, 0)
+		else:
+			var m := CylinderMesh.new()
+			m.top_radius = 0.09
+			m.bottom_radius = 0.09
+			m.height = 0.01
+			mat.albedo_color = Color(0.08, 0.08, 0.08, 0.8)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			m.material = mat
+			mi.mesh = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		mi.global_position = e[2]
+		_evidence_nodes[id] = mi
+	for id: int in _evidence_nodes.keys():
+		if not seen.has(id):
+			_evidence_nodes[id].queue_free()
+			_evidence_nodes.erase(id)
+
+
+func _add_ping(data: Dictionary) -> void:
+	var root := Node3D.new()
+	add_child(root)
+	root.global_position = data["pos"]
+	var colors := {"danger": UITheme.DANGER, "suspicious": UITheme.AMBER}
+	var col: Color = colors.get(data["ping"], UITheme.CYAN)
+	var l := Label3D.new()
+	l.text = "%s\n%s" % [String(data["ping"]).to_upper(), data["name"]]
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.fixed_size = true
+	l.pixel_size = 0.0012
+	l.font_size = 28
+	l.modulate = col
+	l.outline_size = 8
+	l.position = Vector3(0, 1.6, 0)
+	root.add_child(l)
+	var beam := MeshInstance3D.new()
+	var m := CylinderMesh.new()
+	m.top_radius = 0.05
+	m.bottom_radius = 0.05
+	m.height = 3.0
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.albedo_color = Color(col, 0.6)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.material = mat
+	beam.mesh = m
+	beam.position = Vector3(0, 1.5, 0)
+	root.add_child(beam)
+	var life := float(GameData.table("info_systems")["ping_lifetime_seconds"])
+	_ping_nodes.append([root, life])
+	hud.full_map.pings.append([data["pos"], data["ping"], data["name"], life])
+
+
+func _update_pings(delta: float) -> void:
+	for p: Array in _ping_nodes.duplicate():
+		p[1] -= delta
+		if p[1] <= 0.0:
+			(p[0] as Node).queue_free()
+			_ping_nodes.erase(p)
+	for p: Array in hud.full_map.pings.duplicate():
+		p[3] -= delta
+		if p[3] <= 0.0:
+			hud.full_map.pings.erase(p)
+	# Local footsteps.
+	var pos := local.body.global_position
+	var moved := Vector2(pos.x - _last_local.x, pos.z - _last_local.z).length()
+	_last_local = pos
+	if moved < 3.0 and local.body.is_on_floor():
+		_local_step += moved
+		if _local_step > 1.7:
+			_local_step = 0.0
+			sound.play("footstep", -14.0, randf_range(0.9, 1.1))
+
+
+func _on_chat(p: Dictionary) -> void:
+	if p["channel"] == CommsRules.PROXIMITY and avatars.has(p["from"]):
+		avatars[p["from"]].say(p["text"], float(GameData.table("info_systems")["bubble_seconds"]))
+
+
+func _sync_doors() -> void:
+	var locked: Array = game.world.get("doors", [])
+	for b: String in map.raw.get("lockable_buildings", []):
+		MapBuilder.set_doors_locked(world, b, b in locked)
 
 
 func _tracer(from: Vector3, to: Vector3, family: String) -> void:

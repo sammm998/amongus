@@ -28,7 +28,16 @@ var _accent_mat: StandardMaterial3D
 
 
 func _ready() -> void:
-	_build()
+	if _body == null:
+		_build()
+
+
+## Render layers for every mesh (live avatars vs. replay ghosts).
+func set_render_layers(mask: int) -> void:
+	if _body == null:
+		_build()
+	for n in find_children("*", "MeshInstance3D", true, false):
+		(n as MeshInstance3D).layers = mask
 
 
 func set_colors(suit: Color, accent: Color) -> void:

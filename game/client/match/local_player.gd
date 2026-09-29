@@ -57,6 +57,7 @@ func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, su
 	avatar.suit_color = suit
 	avatar.accent_color = accent
 	body.add_child(avatar)
+	avatar.set_render_layers(RenderLayers.AVATARS)
 	_flashlight = SpotLight3D.new()
 	_flashlight.spot_range = 28.0
 	_flashlight.spot_angle = 28.0
@@ -80,7 +81,7 @@ func setup(p_game: ClientGameState, p_map: MapData, p_touch: TouchInputState, su
 	camera = Camera3D.new()
 	camera.fov = FOV
 	camera.far = 2500.0
-	camera.cull_mask = 0xFFFFF
+	camera.cull_mask = RenderLayers.MAIN_CAMERA
 	_arm.add_child(camera)
 	camera.make_current()
 
@@ -160,6 +161,7 @@ func build_input(dt: float) -> PlayerInput:
 		b |= PlayerInput.CROUCH if crouch else 0
 		b |= PlayerInput.RELOAD if (Input.is_action_pressed("reload") or _touch("reload")) else 0
 		b |= PlayerInput.INTERACT if (Input.is_action_pressed("interact") or _touch("interact")) else 0
+		b |= PlayerInput.INSPECT if (Input.is_action_pressed("inspect") or _touch("inspect")) else 0
 		if touch != null and touch.take_pressed("flashlight"):
 			flashlight_on = not flashlight_on
 		b |= PlayerInput.FLASHLIGHT if flashlight_on else 0

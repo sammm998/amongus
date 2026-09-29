@@ -57,5 +57,7 @@ func _process(delta: float) -> void:
 	if not visible:
 		return
 	_t += delta
-	_card.modulate.a = clampf((_t - 0.6) / 0.6, 0.0, 1.0)
+	_card.modulate.a = clampf((_t - 0.6) / 0.6, 0.0, 1.0) * clampf(1.0 - (_t - 6.0) / 1.0, 0.0, 1.0)
 	_black.color.a = 1.0 if _t < 5.5 else clampf(1.0 - (_t - 5.5) / 1.2, 0.0, 1.0)
+	if _t > 7.2:
+		visible = false
