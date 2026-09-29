@@ -24,6 +24,9 @@ enum Msg {
 	MEETING_RESULT = 28, ## s->c: revive / suspects outcome
 	CHAT_MSG = 29,       ## s->c: chat line (already filtered by channel rules)
 	RESULTS = 30,        ## s->c: match end: winner + all roles revealed
+	ACTIVITY = 31,       ## s->c: delayed activity-map blips (only while comms are up)
+	EVIDENCE = 32,       ## s->c: evidence near this player
+	REPLAY = 33,         ## s->c: camera replay clip (requested at the security terminal)
 }
 
 const REJECT_VERSION_MISMATCH := "version_mismatch"
@@ -46,11 +49,14 @@ const SCHEMAS := {
 	Msg.ROLE: {"role": TYPE_STRING, "allies": TYPE_ARRAY},
 	Msg.TASKS: {"tasks": TYPE_ARRAY},
 	Msg.SABOTAGE_PANEL: {"panel": TYPE_DICTIONARY},
-	Msg.WORLD: {"security": TYPE_FLOAT, "sabotages": TYPE_ARRAY, "power": TYPE_BOOL, "suspects": TYPE_ARRAY, "generators": TYPE_ARRAY},
+	Msg.WORLD: {"security": TYPE_FLOAT, "sabotages": TYPE_ARRAY, "power": TYPE_BOOL, "suspects": TYPE_ARRAY, "generators": TYPE_ARRAY, "doors": TYPE_ARRAY, "comms": TYPE_BOOL, "comms_parts": TYPE_ARRAY},
 	Msg.EVENT: {"kind": TYPE_STRING, "data": TYPE_DICTIONARY},
 	Msg.MEETING: {"phase": TYPE_STRING, "time_left": TYPE_FLOAT, "kind": TYPE_STRING, "victim": TYPE_INT, "reporter": TYPE_INT, "info": TYPE_DICTIONARY, "participants": TYPE_ARRAY, "voted": TYPE_ARRAY, "revive_vote": TYPE_BOOL},
 	Msg.MEETING_RESULT: {"victim": TYPE_INT, "revived": TYPE_BOOL, "had_vote": TYPE_BOOL, "tally": TYPE_DICTIONARY, "suspects": TYPE_ARRAY},
 	Msg.CHAT_MSG: {"from": TYPE_INT, "name": TYPE_STRING, "text": TYPE_STRING, "channel": TYPE_STRING},
+	Msg.ACTIVITY: {"blips": TYPE_ARRAY, "comms": TYPE_BOOL},
+	Msg.EVIDENCE: {"items": TYPE_ARRAY},
+	Msg.REPLAY: {"camera": TYPE_STRING, "frames": TYPE_ARRAY},
 	Msg.RESULTS: {"winner": TYPE_STRING, "reason": TYPE_STRING, "players": TYPE_ARRAY, "timeline": TYPE_ARRAY},
 }
 

@@ -10,6 +10,7 @@ const CROUCH := 16
 const RELOAD := 32
 const INTERACT := 64
 const FLASHLIGHT := 128
+const INSPECT := 256
 
 var seq := 0
 var move := Vector2.ZERO   # x = right, y = forward, length <= 1

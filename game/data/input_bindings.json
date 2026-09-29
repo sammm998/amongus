@@ -200,14 +200,6 @@
         4
       ]
     },
-    "map": {
-      "keys": [
-        "M"
-      ],
-      "joy_buttons": [
-        10
-      ]
-    },
     "chat": {
       "keys": [
         "Enter"
@@ -225,6 +217,37 @@
       "keys": [
         "QuoteLeft",
         "F1"
+      ]
+    },
+    "inspect": {
+      "keys": [
+        "Q"
+      ],
+      "joy_buttons": [
+        9
+      ]
+    },
+    "quick_chat": {
+      "keys": [
+        "V"
+      ]
+    },
+    "ping": {
+      "keys": [
+        "G"
+      ],
+      "mouse": [
+        3
+      ]
+    },
+    "emote": {
+      "keys": [
+        "B"
+      ]
+    },
+    "full_map": {
+      "keys": [
+        "M"
       ]
     }
   }

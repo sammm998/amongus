@@ -33,9 +33,11 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	_boundary(map, statics)
 	var district_lights := {}
 	var station_nodes := {}
+	var doors := {}
 	var kit := MeshKit.new() if visuals else null
 	for b: Dictionary in map.raw.get("buildings", []):
 		_building(map, b, statics, kit, root, district_lights)
+		doors[b["id"]] = _doors(map, b, root, visuals)
 	for p: Dictionary in map.raw.get("props", []):
 		_prop(map, p, statics, kit, root)
 	for s: Dictionary in map.raw.get("stations", []):
@@ -57,6 +59,7 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	root.set_meta("district_lights", district_lights)
 	root.set_meta("station_nodes", station_nodes)
 	root.set_meta("camera_points", camera_points)
+	root.set_meta("doors", doors)
 	if visuals:
 		root.add_child(kit.to_instance())
 		_terrain_visuals(map, root)
@@ -199,6 +202,73 @@ static func _building(map: MapData, b: Dictionary, statics: StaticBody3D, kit: M
 			kit.add_box(Transform3D(Basis(), l.position + Vector3(0, 0.5, 0)), Vector3(1.4, 0.1, 0.5), Color(1, 0.95, 0.85), MeshKit.SLOT_GLOW)
 
 
+## Door leaves for every doorway: open (no collision, hidden) until a Security
+## Door Lock sabotage closes them. Returns [{body, visual}].
+static func _doors(map: MapData, b: Dictionary, root: Node3D, visuals: bool) -> Array:
+	var out: Array = []
+	var cx := float(b["x"])
+	var cz := float(b["z"])
+	var w := float(b["w"])
+	var d := float(b["d"])
+	var base := map.height(cx, cz)
+	for door: Dictionary in b.get("doors", []):
+		var width := float(door["width"])
+		var off := float(door.get("offset", 0.0))
+		var pos := Vector3.ZERO
+		var size := Vector3.ZERO
+		match door["side"]:
+			"n":
+				pos = Vector3(cx + off, 0, cz - d * 0.5)
+				size = Vector3(width, DOOR_HEIGHT, WALL * 0.6)
+			"s":
+				pos = Vector3(cx + off, 0, cz + d * 0.5)
+				size = Vector3(width, DOOR_HEIGHT, WALL * 0.6)
+			"w":
+				pos = Vector3(cx - w * 0.5, 0, cz + off)
+				size = Vector3(WALL * 0.6, DOOR_HEIGHT, width)
+			"e":
+				pos = Vector3(cx + w * 0.5, 0, cz + off)
+				size = Vector3(WALL * 0.6, DOOR_HEIGHT, width)
+		pos.y = base + DOOR_HEIGHT * 0.5
+		var body := StaticBody3D.new()
+		body.collision_layer = 0
+		body.collision_mask = 0
+		var shape := BoxShape3D.new()
+		shape.size = size
+		var cs := CollisionShape3D.new()
+		cs.shape = shape
+		body.add_child(cs)
+		body.position = pos
+		root.add_child(body)
+		var visual: MeshInstance3D = null
+		if visuals:
+			visual = MeshInstance3D.new()
+			var mesh := BoxMesh.new()
+			mesh.size = size
+			var mat := StandardMaterial3D.new()
+			mat.albedo_color = Color(0.85, 0.12, 0.1, 0.75)
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			mat.emission_enabled = true
+			mat.emission = Color(1.0, 0.15, 0.1)
+			mat.emission_energy_multiplier = 0.6
+			mesh.material = mat
+			visual.mesh = mesh
+			visual.position = pos
+			visual.visible = false
+			root.add_child(visual)
+		out.append({"body": body, "visual": visual})
+	return out
+
+
+## Locks or unlocks the doors of one building.
+static func set_doors_locked(world_root: Node3D, building: String, locked: bool) -> void:
+	var doors: Dictionary = world_root.get_meta("doors", {})
+	for door: Dictionary in doors.get(building, []):
+		(door["body"] as StaticBody3D).collision_layer = WORLD_LAYER if locked else 0
+		if door["visual"] != null:
+			(door["visual"] as MeshInstance3D).visible = locked
+
+
 static func _prop(map: MapData, p: Dictionary, statics: StaticBody3D, kit: MeshKit, root: Node3D) -> void:
 	var x := float(p["x"])
 	var z := float(p["z"])
@@ -311,6 +381,9 @@ static func _station(map: MapData, s: Dictionary, statics: StaticBody3D, visuals
 		"beacon":
 			kit.add_cylinder(Transform3D(Basis(), Vector3(0, 1.5, 0)), 0.1, 0.14, 3.0, Color(0.9, 0.9, 0.9), 8)
 			kit.add_sphere(Transform3D(Basis(), Vector3(0, 3.1, 0)), 0.25, Color(1, 0.5, 0.1), 10, MeshKit.SLOT_GLOW)
+		"door_panel":
+			kit.add_box(Transform3D(Basis(), Vector3(0, 1.3, 0)), Vector3(0.6, 0.8, 0.2), Color(0.25, 0.28, 0.34), MeshKit.SLOT_METAL)
+			kit.add_box(Transform3D(Basis(), Vector3(0, 1.35, 0.11)), Vector3(0.4, 0.4, 0.02), Color(1.0, 0.7, 0.2), MeshKit.SLOT_GLOW)
 		"wreck_site":
 			kit.add_box(Transform3D(Basis(Vector3.UP, 0.7), Vector3(0, 0.3, 0)), Vector3(1.2, 0.6, 0.8), Color(0.3, 0.3, 0.32), MeshKit.SLOT_METAL)
 	if solid != Vector3.ZERO:

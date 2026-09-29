@@ -89,7 +89,7 @@ func test_snapshots_never_include_roles() -> void:
 		for m: Array in _log[pid]:
 			if m[0] == Protocol.Msg.SNAPSHOT:
 				for entry: Array in m[1]["players"]:
-					assert_int(entry.size()).is_equal(7)
+					assert_int(entry.size()).is_equal(8)
 					for v: Variant in entry:
 						assert_bool(v is String and (v == "traitor" or v == "agent")).is_false()
 

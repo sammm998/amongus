@@ -104,6 +104,13 @@ st("relay_beach", "relay", 30, 97, "beach", label="Beach relay")
 st("crash_beach", "wreck_site", -26, 95, "beach", label="Crash site")
 st("beacon_point", "beacon", -86, 117, "beach", label="Point beacon")
 st("breaker_beach", "breaker", 18, 88.9, "beach", label="Breaker")
+st("cc_uplink_a", "console", -15.5, -25, "central_command", label="Uplink console A")
+st("cc_uplink_b", "console", 15.5, -27, "central_command", label="Uplink console B")
+# Facility door-override panels (Security Door Lock repairs).
+st("panel_cc_hall", "door_panel", 3.2, -5.4, "central_command", label="Door override", building="cc_hall")
+st("panel_cc_annex", "door_panel", 23.8, -48.5, "central_command", label="Door override", building="cc_annex")
+st("panel_med_center", "door_panel", -99.8, -24.5, "medical", label="Door override", building="med_center")
+st("panel_harbor_warehouse", "door_panel", 125.8, -44.5, "harbor", label="Door override", building="harbor_warehouse")
 
 # Security cameras: position, look-at target (world, y = metres above ground).
 cameras = [
@@ -168,9 +175,9 @@ wp("an_out", 22, -44); wp("an_in", 28, -44); wp("an_n", 33, -49); wp("an_s", 33,
 chain("cc_de_out", "an_out", "an_in", "an_n"); chain("an_in", "an_s")
 # Exterior around CC
 wp("ex_s", 0, 2); wp("ex_sw", -22, 0); wp("ex_se", 22, -2); wp("ex_n", 0, -42); wp("ex_nw", -22, -40); wp("ex_ne", 16, -44)
-wp("breaker_cc_wp", -21, -12); wp("radar_wp", 4, -42)
+wp("breaker_cc_wp", -21, -12); wp("cc_upa", -13, -24); wp("cc_upb", 13, -26); wp("radar_wp", 4, -42)
 chain("cc_ds_out", "ex_s"); chain("ex_s", "ex_sw", "cc_dw_out"); chain("ex_s", "ex_se", "cc_de_out")
-chain("cc_dw_out", "breaker_cc_wp"); chain("cc_dn_out", "ex_n", "radar_wp"); chain("ex_n", "ex_nw", "cc_dw_out"); chain("ex_n", "ex_ne", "an_out")
+chain("cc_dw_out", "breaker_cc_wp"); chain("cc_w", "cc_upa"); chain("cc_e", "cc_upb"); chain("cc_dn_out", "ex_n", "radar_wp"); chain("ex_n", "ex_nw", "cc_dw_out"); chain("ex_n", "ex_ne", "an_out")
 # Road west to Medical
 wp("rw1", -40, -20); wp("rw2", -60, -18); wp("rw3", -85, -20)
 wp("med_de_out", -97, -20); wp("med_de_in", -105, -20); wp("med_c", -115, -20)
@@ -210,6 +217,9 @@ out = {
     "cameras": cameras, "spawns": spawns, "loot": loot, "roads": roads,
     "meeting_center": [0, -22], "medical_respawn": ["med_pod_1", "med_pod_2"],
     "generators": ["gen_a", "gen_b", "gen_c"],
+    "features": [],
+    "lockable_buildings": ["cc_hall", "cc_annex", "med_center", "harbor_warehouse"],
+    "medical_center_respawn": [-115, -4],
     "waypoints": W, "edges": E,
 }
 json.dump(out, open("game/data/maps/slice.json", "w"), indent=1)

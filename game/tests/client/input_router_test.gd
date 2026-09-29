@@ -54,7 +54,7 @@ func test_bindings_registered_from_data() -> void:
 func test_spec_desktop_keys() -> void:
 	var expected := {
 		KEY_SPACE: "jump", KEY_SHIFT: "sprint", KEY_CTRL: "crouch", KEY_R: "reload", KEY_E: "interact",
-		KEY_F: "vehicle", KEY_T: "flashlight", KEY_TAB: "scoreboard", KEY_M: "map", KEY_ENTER: "chat", KEY_ESCAPE: "menu",
+		KEY_F: "vehicle", KEY_T: "flashlight", KEY_TAB: "scoreboard", KEY_M: "full_map", KEY_ENTER: "chat", KEY_ESCAPE: "menu",
 	}
 	for key: int in expected:
 		var e := InputEventKey.new()

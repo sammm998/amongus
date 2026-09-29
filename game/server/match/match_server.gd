@@ -17,6 +17,11 @@ const INTERACT_TASK := "task"
 const INTERACT_PICKUP := "pickup"
 const INTERACT_EMERGENCY := "emergency"
 const INTERACT_CAMERAS := "cameras"
+const INTERACT_COMMS := "comms_repair"
+const INTERACT_DOOR_PANEL := "door_panel"
+const INTERACT_MEDICAL := "medical_reset"
+const INTERACT_COOP_ASSIST := "coop_assist"
+const EMOTE_NONE := ""
 const CHAT_MAX := 140
 const LOBBY_PHASES := [MatchPhases.Phase.WAITING, MatchPhases.Phase.COUNTDOWN]
 
@@ -41,6 +46,16 @@ var auto_bot_fill := true
 var critical_expired := false
 var result: Dictionary = {}
 var emergency_ready_at := 0.0
+var activity: ActivityFeed
+var recorder: CameraRecorder
+var evidence: EvidenceLog
+var coop: CoopTracker
+var coop_pending: Dictionary = {}  # player -> task index waiting for a partner
+var info_cfg: Dictionary
+var _record_timer := 0.0
+var _activity_timer := 0.0
+var _evidence_timer := 0.0
+var _doors_locked: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var motor: PlayerMotor
 var world_viewport: SubViewport
@@ -76,6 +91,7 @@ func setup(p_map_id: String = "slice", p_mode: String = "standard", overrides: D
 	items_cfg = GameData.table("items")
 	bots_cfg = GameData.table("bots")
 	net_cfg = GameData.table("network")
+	info_cfg = GameData.table("info_systems")
 	settings = MatchSettings.build(GameData.table("lobby_defaults"), GameData.table("modes"), mode, overrides)
 	motor = PlayerMotor.new(movement_cfg)
 	map = MapData.load_map(map_id)
@@ -106,6 +122,14 @@ func _reset_match_state() -> void:
 	critical_expired = false
 	result = {}
 	emergency_ready_at = 0.0
+	activity = ActivityFeed.new(info_cfg["activity"])
+	recorder = CameraRecorder.new(float(info_cfg["camera_replay_seconds"]))
+	evidence = EvidenceLog.new(float(info_cfg["evidence_lifetime_seconds"]), int(info_cfg["evidence_max"]))
+	coop = CoopTracker.new(float(info_cfg["coop_window_seconds"]))
+	coop_pending.clear()
+	for b: String in map.raw.get("lockable_buildings", []):
+		MapBuilder.set_doors_locked(world, b, false)
+	_doors_locked.clear()
 	loot.clear()
 	for l: Dictionary in map.raw.get("loot", []):
 		_spawn_loot(l["item"], l.get("rarity", "standard"), int(l.get("amount", 0)), map.ground_point(float(l["x"]), float(l["z"])))
@@ -254,6 +278,14 @@ func handle_action(p: ServerPlayer, kind: String, target: int, text: String) -> 
 			_try_sabotage(p, text)
 		"chat":
 			_chat(p, text)
+		"quick":
+			_quick_chat(p, target)
+		"ping":
+			_ping(p, text)
+		"emote":
+			_emote(p, text)
+		"replay":
+			_send_replay(p, text)
 
 
 func request_start() -> bool:
@@ -293,6 +325,22 @@ func tick(delta: float) -> void:
 	if _snapshot_timer >= 1.0 / float(flow_cfg["snapshot_rate"]):
 		_snapshot_timer = 0.0
 		_send_snapshots()
+	if phases.is_playing():
+		_record_timer += delta
+		if _record_timer >= 1.0 / float(info_cfg["camera_record_hz"]):
+			_record_timer = 0.0
+			_record_cameras()
+	_activity_timer += delta
+	if _activity_timer >= 2.0 and (phases.is_playing() or phases.in_meeting()):
+		_activity_timer = 0.0
+		activity.prune(now)
+		evidence.prune(now)
+		var comms := not sabotage.comms_down()
+		broadcast(Protocol.Msg.ACTIVITY, {"blips": activity.visible(now) if comms else [], "comms": comms})
+	_evidence_timer += delta
+	if _evidence_timer >= 1.0 and phases.is_playing():
+		_evidence_timer = 0.0
+		_send_evidence()
 	_slow_timer += delta
 	if _slow_timer >= float(flow_cfg["state_broadcast_seconds"]):
 		_slow_timer = 0.0
@@ -423,9 +471,11 @@ func _apply_input(p: ServerPlayer, inp: PlayerInput) -> void:
 	if not phases.is_playing() or not p.is_living() or p.vitals.is_stunned():
 		return
 	var inv := p.inventory
-	if inp.slot >= 0 and inp.slot != inv.active:
+	if inp.slot >= 0 and inp.slot != inv.active and not (not p.carrying.is_empty() and inp.slot in [Inventory.PRIMARY, Inventory.SECONDARY]):
 		if inv.select(inp.slot):
 			_cancel_healing(p)
+	if not p.carrying.is_empty() and inv.active in [Inventory.PRIMARY, Inventory.SECONDARY]:
+		inv.select(Inventory.SIDEARM)  # carrying an item: no primary weapon (GAME_SPEC §5.6)
 	var w := inv.active_weapon() if inv.active != Inventory.HEALING else null
 	if w != null:
 		w.set_trigger(inp.has(PlayerInput.FIRE), now)
@@ -528,6 +578,11 @@ func _try_fire(p: ServerPlayer, w: WeaponInstance, inp: PlayerInput) -> void:
 		elif i == 0:
 			best_end = origin + d * world_dist
 	gunfire.append([now, origin])
+	activity.record("gunfire", map.district_at(origin), now, rng)
+	if rng.randf() < float(info_cfg["casing_chance"]):
+		evidence.add("casing", p.feet() + Vector3(rng.randf_range(-0.6, 0.6), 0.02, rng.randf_range(-0.6, 0.6)), family, now)
+	if rng.randf() < float(info_cfg["impact_chance"]) and best_end.distance_to(origin) < float(w.def.get("range_m", 200.0)) - 1.0:
+		evidence.add("impact", best_end, family, now)
 	_emit_shot(p, origin, best_end, family)
 
 
@@ -586,7 +641,57 @@ func _direction_name(target: ServerPlayer, to_attacker: Vector3) -> String:
 
 # ----------------------------------------------------------- interaction ---
 
+func _process_inspect(p: ServerPlayer, delta: float) -> void:
+	if not phases.is_playing() or not p.is_living() or not p.last_input.has(PlayerInput.INSPECT):
+		p.inspect_target = ""
+		p.inspect_held = 0.0
+		p.set_meta("inspect_prompt", find_inspection(p) if phases.is_playing() and p.is_living() else {})
+		return
+	var target := find_inspection(p)
+	p.set_meta("inspect_prompt", target)
+	if target.is_empty():
+		p.inspect_target = ""
+		p.inspect_held = 0.0
+		return
+	if p.inspect_target != target["key"]:
+		p.inspect_target = target["key"]
+		p.inspect_held = 0.0
+	p.inspect_held += delta
+	if p.inspect_held >= float(target["hold"]):
+		p.inspect_held = -1000.0  # one result per hold
+		if target["kind"] == "body":
+			var q: ServerPlayer = players[int(target["ref"])]
+			var r := Inspection.report(q.incident, now, rng, float(info_cfg["inspect_noise_seconds"]))
+			r["name"] = q.name
+			send(p.id, Protocol.Msg.EVENT, {"kind": "inspection", "data": r})
+		else:
+			var e := evidence.get_item(int(target["ref"]))
+			if not e.is_empty():
+				send(p.id, Protocol.Msg.EVENT, {"kind": "evidence_info", "data": {"kind": e["kind"], "family": e["family"], "seconds_ago": float(maxi(5, int(round((now - float(e["time"])) / 10.0)) * 10))}})
+
+
+## Bodies and evidence the player can inspect (secondary "INSPECT" action).
+func find_inspection(p: ServerPlayer) -> Dictionary:
+	var pos := p.feet()
+	var reach := float(interaction_cfg["range_m"])
+	for q: ServerPlayer in players.values():
+		if q.id != p.id and not q.spectator and q.vitals.state != Vitals.State.ALIVE and q.feet().distance_to(pos) <= reach + 0.6:
+			return _prompt("inspect:%d" % q.id, "body", "INSPECT", "Inspect %s" % q.name, float(info_cfg["inspect_hold_seconds"]), q.id)
+	var best: Dictionary = {}
+	var best_d := reach
+	for e: Dictionary in evidence.near(pos, reach):
+		var d := (e["pos"] as Vector3).distance_to(pos)
+		if d < best_d:
+			best_d = d
+			best = e
+	if not best.is_empty():
+		var label := "shell casing" if best["kind"] == "casing" else "impact mark"
+		return _prompt("ev:%d" % best["id"], "evidence", "INSPECT", "Inspect %s" % label, float(info_cfg["inspect_evidence_hold_seconds"]), best["id"])
+	return {}
+
+
 func _process_interaction(p: ServerPlayer, delta: float) -> void:
+	_process_inspect(p, delta)
 	var holding := p.last_input.has(PlayerInput.INTERACT)
 	if not phases.is_playing() or not p.is_living():
 		p.interact_target = ""
@@ -638,6 +743,19 @@ func find_interaction(p: ServerPlayer) -> Dictionary:
 	var near_security := map.stations.has("security_reset") and reset_pos.distance_to(pos) <= reach
 	if near_security and sabotage.is_active("camera_jam"):
 		return _prompt("camreset", INTERACT_CAMERA_RESET, "RESET", "Reset camera network", float(sab_def["camera_jam"]["repair_hold_seconds"]), "")
+	if sabotage.comms_down():
+		var done := sabotage.repaired_parts("comms_failure")
+		for part: String in sab_def["comms_failure"]["parts"]:
+			if not done.has(part) and map.stations.has(part) and map.station_pos(part).distance_to(pos) <= reach:
+				return _prompt("comms:" + part, INTERACT_COMMS, "REPAIR", "Reboot communications", float(sab_def["comms_failure"]["repair_hold_seconds"]), part)
+	for b: String in _doors_locked:
+		var panel := "panel_" + b
+		if map.stations.has(panel) and map.station_pos(panel).distance_to(pos) <= reach:
+			return _prompt("door:" + b, INTERACT_DOOR_PANEL, "OVERRIDE", "Unlock doors", float(sab_def["door_lock"]["repair_hold_seconds"]), b)
+	if sabotage.is_active("medical_failure"):
+		var st: String = sab_def["medical_failure"]["repair_station"]
+		if map.stations.has(st) and map.station_pos(st).distance_to(pos) <= reach:
+			return _prompt("medreset", INTERACT_MEDICAL, "RESET", "Reset medical systems", float(sab_def["medical_failure"]["repair_hold_seconds"]), st)
 	# 3. Tasks (fake tasks look identical).
 	var list := tasks.tasks_for(p.id)
 	for i in list.size():
@@ -647,6 +765,11 @@ func find_interaction(p: ServerPlayer) -> Dictionary:
 			var step: Dictionary = t["steps"][t["step"]]
 			var hold := maxf(0.6, float(step["hold"]))
 			return _prompt("task:%d" % i, INTERACT_TASK, "START TASK", step["label"], hold, i)
+	# Cooperative partner consoles: anyone can assist.
+	for tid: String in tasks.pool:
+		var def: Dictionary = tasks.pool[tid]
+		if def.get("kind", "") == "cooperative" and map.stations.has(def["partner"]) and map.station_pos(def["partner"]).distance_to(pos) <= reach:
+			return _prompt("coop:" + def["partner"], INTERACT_COOP_ASSIST, "ASSIST", "%s (partner console)" % def["display_name"], float(def.get("hold_seconds", 2.0)), tid)
 	# 4. Pick up loot.
 	for l: Dictionary in loot:
 		if not l["taken"] and (l["pos"] as Vector3).distance_to(pos) <= reach:
@@ -689,17 +812,45 @@ func _execute_interaction(p: ServerPlayer, target: Dictionary, held: float) -> v
 			p.stats["repairs"] += 1
 			_alert("CAMERAS ONLINE", "", false)
 			_broadcast_world()
+		INTERACT_COMMS:
+			var r := sabotage.repair("comms_failure", "", target["ref"])
+			p.stats["repairs"] += 1
+			if r["repaired"]:
+				_alert("COMMUNICATIONS RESTORED", "", false)
+			else:
+				send(p.id, Protocol.Msg.EVENT, {"kind": "repair_progress", "data": {"text": "Comms console rebooted (%d/2)" % int(r["progress"])}})
+			_broadcast_world()
+		INTERACT_DOOR_PANEL:
+			if sabotage.repair("door_lock", target["ref"])["repaired"]:
+				p.stats["repairs"] += 1
+				_set_doors(target["ref"], false)
+				_alert("DOORS UNLOCKED", map.district_at(map.station_pos("panel_" + target["ref"])), false)
+				_broadcast_world()
+		INTERACT_MEDICAL:
+			if sabotage.repair("medical_failure", "")["repaired"]:
+				p.stats["repairs"] += 1
+				_alert("MEDICAL SYSTEMS ONLINE", "medical", false)
+				_broadcast_world()
+		INTERACT_COOP_ASSIST:
+			var def: Dictionary = tasks.pool[target["ref"]]
+			var partner := coop.press(p.id, def["partner"], def["stations"][0], now)
+			if not partner.is_empty() and coop_pending.has(partner["player"]):
+				_complete_task_step(players[partner["player"]], coop_pending[partner["player"]], def["stations"][0], 999.0)
+				coop_pending.erase(partner["player"])
+				send(p.id, Protocol.Msg.EVENT, {"kind": "task_step", "data": {"done": true, "text": "UPLINK SYNCED"}})
+			else:
+				send(p.id, Protocol.Msg.EVENT, {"kind": "coop_wait", "data": {"text": "Holding the partner console — someone must use console A within 3 s"}})
 		INTERACT_TASK:
 			var idx := int(target["ref"])
-			var r := tasks.complete_step(p.id, idx, tasks.current_station(p.id, idx), held)
-			if r["ok"]:
-				if r["task_done"]:
-					p.stats["tasks"] += 1
-				send(p.id, Protocol.Msg.TASKS, {"tasks": tasks.view_for(p.id)})
-				send(p.id, Protocol.Msg.EVENT, {"kind": "task_step", "data": {"done": r["task_done"]}})
-				if r["progress"] > 0.0:
-					_broadcast_world()
-					_check_win()
+			var t: Dictionary = tasks.tasks_for(p.id)[idx]
+			if t["kind"] == "cooperative":
+				var tdef: Dictionary = tasks.pool[t["id"]]
+				var partner := coop.press(p.id, tdef["stations"][0], tdef["partner"], now)
+				if partner.is_empty():
+					coop_pending[p.id] = idx
+					send(p.id, Protocol.Msg.EVENT, {"kind": "coop_wait", "data": {"text": "Someone must hold console B within 3 s"}})
+					return
+			_complete_task_step(p, idx, tasks.current_station(p.id, idx), held)
 		INTERACT_PICKUP:
 			_pickup(p, int(target["ref"]))
 		INTERACT_EMERGENCY:
@@ -707,6 +858,32 @@ func _execute_interaction(p: ServerPlayer, target: Dictionary, held: float) -> v
 			_start_meeting(Meeting.KIND_EMERGENCY, p.id, -1)
 		INTERACT_CAMERAS:
 			send(p.id, Protocol.Msg.EVENT, {"kind": "open_cameras", "data": {}})
+
+
+func _complete_task_step(p: ServerPlayer, idx: int, station: String, held: float) -> void:
+	var r := tasks.complete_step(p.id, idx, station, held)
+	if not r["ok"]:
+		return
+	var t: Dictionary = tasks.tasks_for(p.id)[idx]
+	if t["kind"] == "delivery":
+		var def: Dictionary = tasks.pool[t["id"]]
+		p.carrying = "" if r["task_done"] else def.get("carry_item", "crate")
+	if r["task_done"]:
+		p.stats["tasks"] += 1
+	send(p.id, Protocol.Msg.TASKS, {"tasks": tasks.view_for(p.id)})
+	send(p.id, Protocol.Msg.EVENT, {"kind": "task_step", "data": {"done": r["task_done"]}})
+	if r["progress"] > 0.0:
+		_broadcast_world()
+		_check_win()
+
+
+func _set_doors(building: String, locked: bool) -> void:
+	MapBuilder.set_doors_locked(world, building, locked)
+	if locked:
+		_doors_locked[building] = true
+		activity.record("door_breach", map.district_at(map.station_pos("panel_" + building)), now, rng)
+	else:
+		_doors_locked.erase(building)
 
 
 func _restored_generators() -> Dictionary:
@@ -873,8 +1050,12 @@ func _revive(v: ServerPlayer) -> void:
 	v.reported = false
 	v.stats["revived"] += 1
 	var candidates: Array = []
-	for pod: String in map.raw.get("medical_respawn", []):
-		candidates.append(map.station_pos(pod) + Vector3(0, 0.1, 1.2))
+	if not sabotage.is_active("medical_failure"):
+		for pod: String in map.raw.get("medical_respawn", []):
+			candidates.append(map.station_pos(pod) + Vector3(0, 0.1, 1.2))
+	var mc: Array = map.raw.get("medical_center_respawn", [])
+	if mc.size() == 2:
+		candidates.append(map.ground_point(float(mc[0]), float(mc[1])) + Vector3(0, 0.1, 0))
 	var recent: Array = []
 	for g: Array in gunfire:
 		if now - float(g[0]) <= float(interaction_cfg["gunfire_memory_seconds"]):
@@ -893,8 +1074,14 @@ func _try_sabotage(p: ServerPlayer, text: String) -> void:
 	var parts := text.split("|")
 	var kind := parts[0]
 	var district := parts[1] if parts.size() > 1 else ""
-	if not district.is_empty() and not district in map.district_ids():
+	var def0: Dictionary = GameData.table("sabotages")["sabotages"].get(kind, {})
+	if def0.get("targets", "") == "building":
+		if not district in map.raw.get("lockable_buildings", []):
+			district = ""
+	elif not district.is_empty() and not district in map.district_ids():
 		district = ""
+	if not def0.get("requires", "").is_empty() and not def0["requires"] in map.raw.get("features", []):
+		return
 	var reason := sabotage.can_trigger(kind, district, now, phases.elapsed, phases.in_meeting(), float(flow_cfg["sabotage_grace_seconds"]))
 	if not reason.is_empty():
 		send(p.id, Protocol.Msg.EVENT, {"kind": "denied", "data": {"reason": reason}})
@@ -902,15 +1089,29 @@ func _try_sabotage(p: ServerPlayer, text: String) -> void:
 	sabotage.trigger(kind, district, now)
 	p.stats["sabotages"] += 1
 	var def: Dictionary = GameData.table("sabotages")["sabotages"][kind]
+	if kind == "false_alarm":
+		# A fake event appears on the activity map; no alert that it was fake.
+		activity.record(def.get("fake_event", "gunfire"), district, now - 3.0, rng)
+		_timeline("%s triggered a False Alarm at %s" % [p.name, map.district_name(district)])
+		_send_panels()
+		return
+	if kind == "door_lock":
+		_set_doors(district, true)
+	if kind == "power_failure":
+		activity.record("power_outage", "central_command", now, rng)
 	_timeline("%s triggered %s%s" % [p.name, def["display_name"], (" at " + map.district_name(district)) if not district.is_empty() else ""])
-	_alert(def["alert"], district, bool(def["critical"]))
+	var where := district
+	if kind == "door_lock":
+		where = map.district_at(map.station_pos("panel_" + district))
+	_alert(def["alert"], where, bool(def["critical"]))
 	_broadcast_world()
 	_send_panels()
 
 
 func _panel_payload() -> Dictionary:
-	var panel := sabotage.panel(now)
+	var panel := sabotage.panel(now, map.raw.get("features", []))
 	panel["districts"] = map.district_ids()
+	panel["buildings"] = map.raw.get("lockable_buildings", [])
 	panel["grace_left"] = maxf(0.0, float(flow_cfg["sabotage_grace_seconds"]) - phases.elapsed)
 	return panel
 
@@ -937,7 +1138,7 @@ func _broadcast_world() -> void:
 		var restored := _restored_generators()
 		for g: String in map.raw.get("generators", []):
 			gens.append([g, restored.has(g)])
-	broadcast(Protocol.Msg.WORLD, {"security": tasks.security_percent(), "sabotages": sabotage.public_state(), "power": not sabotage.power_out(), "suspects": suspects, "generators": gens})
+	broadcast(Protocol.Msg.WORLD, {"security": tasks.security_percent(), "sabotages": sabotage.public_state(), "power": not sabotage.power_out(), "suspects": suspects, "generators": gens, "doors": _doors_locked.keys(), "comms": not sabotage.comms_down(), "comms_parts": sabotage.repaired_parts("comms_failure").keys()})
 
 
 # ------------------------------------------------------------- playing ---
@@ -956,7 +1157,11 @@ func _process_playing(delta: float) -> void:
 			_timeline("Power failure countdown expired")
 		else:
 			var def: Dictionary = GameData.table("sabotages")["sabotages"][ev["kind"]]
-			_alert("%s ENDED" % def["alert"], ev["district"], false)
+			if ev["kind"] == "door_lock":
+				_set_doors(ev["district"], false)
+				_alert("DOORS UNLOCKED", map.district_at(map.station_pos("panel_" + ev["district"])), false)
+			else:
+				_alert("%s ENDED" % def["alert"], ev["district"], false)
 		_broadcast_world()
 	var keep := float(interaction_cfg["gunfire_memory_seconds"])
 	while not gunfire.is_empty() and now - float(gunfire[0][0]) > keep:
@@ -1037,7 +1242,9 @@ func _send_snapshots() -> void:
 		flags |= 16 if q.flashlight else 0
 		flags |= 32 if q.vitals.protection_left > 0.0 else 0
 		flags |= 64 if q.healing_left > 0.0 else 0
-		var entry := [q.id, q.feet(), q.yaw, q.pitch, int(q.vitals.state), w.id if w != null else "", flags]
+		flags |= 128 if not q.carrying.is_empty() else 0
+		var emote := q.emote if q.emote_until > now else ""
+		var entry := [q.id, q.feet(), q.yaw, q.pitch, int(q.vitals.state), w.id if w != null else "", flags, emote]
 		if q.vitals.state == Vitals.State.ELIMINATED:
 			bodies.append([q.id, q.feet(), q.yaw])
 		else:
@@ -1055,13 +1262,17 @@ func _me_block(p: ServerPlayer) -> Dictionary:
 	var prompt_view := {}
 	if not prompt.is_empty():
 		prompt_view = {"verb": prompt["verb"], "label": prompt["label"], "hold": prompt["hold"], "progress": p.interact_held if p.interact_target == prompt["key"] else 0.0}
+	var inspect: Dictionary = p.get_meta("inspect_prompt", {})
+	var inspect_view := {}
+	if not inspect.is_empty():
+		inspect_view = {"label": inspect["label"], "hold": inspect["hold"], "progress": maxf(0.0, p.inspect_held) if p.inspect_target == inspect["key"] else 0.0}
 	var w := p.inventory.active_weapon() if p.inventory.active != Inventory.HEALING else null
 	return {
 		"id": p.id, "state": int(p.vitals.state), "spectator": p.spectator, "health": p.vitals.health, "shield": p.vitals.shield,
 		"bleed": p.vitals.bleed_left, "protect": p.vitals.protection_left, "stun": p.vitals.stun_left,
 		"pos": p.feet(), "vel": p.body.velocity, "crouch": p.crouching,
 		"inv": p.inventory.view(), "reloading": w != null and w.is_reloading(),
-		"healing": p.healing_left, "prompt": prompt_view,
+		"healing": p.healing_left, "prompt": prompt_view, "inspect": inspect_view, "carrying": p.carrying,
 		"emergency_left": int(settings["emergency_meeting_uses_per_player"]) - p.emergency_uses,
 	}
 
@@ -1094,6 +1305,90 @@ func _chat(p: ServerPlayer, text: String) -> void:
 
 
 # --------------------------------------------------------------- helpers ---
+
+# ---------------------------------------------------- info + comms (M3) ---
+
+func _record_cameras() -> void:
+	var pts: Dictionary = world.get_meta("camera_points")
+	var cam_range := float(info_cfg["camera_range_m"])
+	var half_fov := deg_to_rad(float(info_cfg["camera_fov_degrees"]) * 0.5)
+	for c: Dictionary in map.raw.get("cameras", []):
+		var xf: Transform3D = pts[c["id"]]
+		var jammed := sabotage.camera_jammed(c["district"])
+		var entries: Array = []
+		if not jammed:
+			var fwd := -xf.basis.z
+			for q: ServerPlayer in players.values():
+				if q.spectator:
+					continue
+				var to := q.feet() + Vector3(0, 1.0, 0) - xf.origin
+				if to.length() > cam_range or fwd.angle_to(to.normalized()) > half_fov:
+					continue
+				if not line_of_sight(xf.origin, q.feet() + Vector3(0, 1.0, 0)):
+					continue
+				var w := q.inventory.active_weapon() if q.inventory.active != Inventory.HEALING else null
+				entries.append([q.id, q.feet(), q.yaw, int(q.vitals.state), w != null and q.last_input.has(PlayerInput.FIRE)])
+		recorder.record(c["id"], now, entries, jammed)
+
+
+func _send_replay(p: ServerPlayer, camera_id: String) -> void:
+	if not map.stations.has("security_reset") or map.station_pos("security_reset").distance_to(p.feet()) > float(interaction_cfg["range_m"]) + 2.0:
+		return
+	if not recorder.feeds.has(camera_id):
+		return
+	# Replay shows suits (colours are public), never names or roles.
+	send(p.id, Protocol.Msg.REPLAY, {"camera": camera_id, "frames": recorder.clip(camera_id, now)})
+
+
+func _send_evidence() -> void:
+	var radius := float(info_cfg["evidence_send_radius_m"])
+	for p: ServerPlayer in players.values():
+		var items: Array = []
+		var center := p.feet()
+		for e: Dictionary in evidence.near(center, radius):
+			items.append([e["id"], e["kind"], e["pos"]])
+		send(p.id, Protocol.Msg.EVIDENCE, {"items": items}, false)
+
+
+func _quick_chat(p: ServerPlayer, index: int) -> void:
+	var list: Array = info_cfg["quick_chat"]
+	if index < 0 or index >= list.size():
+		return
+	var line: String = list[index]
+	if sabotage.comms_down() and line in info_cfg["comms_blocked_quick_chat"]:
+		send(p.id, Protocol.Msg.EVENT, {"kind": "denied", "data": {"reason": "comms_down"}})
+		return
+	_chat(p, line)
+
+
+## Pings: location, danger, vehicle, task, item, SUSPICIOUS — never "traitor here".
+func _ping(p: ServerPlayer, text: String) -> void:
+	var parts := text.split("|")
+	if parts.size() != 4 or now < p.ping_ready_at:
+		return
+	var kind := parts[0]
+	if not kind in info_cfg["ping_kinds"]:
+		return
+	var pos := Vector3(parts[1].to_float(), parts[2].to_float(), parts[3].to_float())
+	if not pos.is_finite() or pos.distance_to(p.feet()) > float(info_cfg["ping_max_distance_m"]):
+		return
+	var state := Vitals.State.ELIMINATED if p.spectator else p.vitals.state
+	var channel := CommsRules.sender_channel(state, phases.in_meeting(), false)
+	if channel.is_empty():
+		return
+	p.ping_ready_at = now + 0.8
+	for q: ServerPlayer in players.values():
+		var qs := Vitals.State.ELIMINATED if q.spectator else q.vitals.state
+		if CommsRules.can_receive(CommsRules.DEAD if channel == CommsRules.DEAD else CommsRules.MEETING, qs, 0.0, 0.0) and (channel != CommsRules.DEAD or qs == Vitals.State.ELIMINATED) and qs != Vitals.State.DOWNED:
+			send(q.id, Protocol.Msg.EVENT, {"kind": "ping", "data": {"from": p.id, "name": p.name, "ping": kind, "pos": pos}})
+
+
+func _emote(p: ServerPlayer, emote_id: String) -> void:
+	if not emote_id in info_cfg["emotes"] or not p.is_living() or not (phases.is_playing() or phases.phase in LOBBY_PHASES):
+		return
+	p.emote = emote_id
+	p.emote_until = now + float(info_cfg["emote_seconds"])
+
 
 ## Line of sight test for bot perception (same eyes as a human would have).
 func line_of_sight(from: Vector3, to: Vector3) -> bool:

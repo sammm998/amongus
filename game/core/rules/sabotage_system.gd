@@ -33,7 +33,7 @@ func can_trigger(kind: String, district: String, now: float, match_elapsed: floa
 	var def: Dictionary = defs[kind]
 	if bool(def["critical"]) and critical_active():
 		return "critical_active"
-	if def["targets"] == "district" and district.is_empty():
+	if def["targets"] in ["district", "building"] and district.is_empty():
 		return "no_target"
 	for a: Dictionary in active:
 		if a["kind"] == kind and a["district"] == district:
@@ -41,14 +41,17 @@ func can_trigger(kind: String, district: String, now: float, match_elapsed: floa
 	return ""
 
 
+## `district` is the target (a district or building id) for targeted kinds.
+## Duration < 0 = lasts until repaired; duration 0 = instant (nothing stays active).
 func trigger(kind: String, district: String, now: float) -> Dictionary:
 	var def: Dictionary = defs[kind]
 	var entry := {
-		"kind": kind, "district": district if def["targets"] == "district" else "",
+		"kind": kind, "district": district if def["targets"] in ["district", "building"] else "",
 		"time_left": float(def["duration_seconds"]), "critical": bool(def["critical"]),
 		"generators": {},
 	}
-	active.append(entry)
+	if float(def["duration_seconds"]) != 0.0:
+		active.append(entry)
 	ready_at[kind] = now + float(def["cooldown_seconds"]) * cooldown_multiplier
 	team_ready_at = now + team_cooldown * cooldown_multiplier
 	return entry
@@ -60,6 +63,8 @@ func tick(delta: float, paused: bool) -> Array:
 	if paused:
 		return events
 	for a: Dictionary in active.duplicate():
+		if float(defs[a["kind"]]["duration_seconds"]) < 0.0:
+			continue  # until repaired
 		a["time_left"] -= delta
 		if a["time_left"] <= 0.0:
 			active.erase(a)
@@ -73,9 +78,12 @@ func repair(kind: String, district: String, part: String = "") -> Dictionary:
 	for a: Dictionary in active:
 		if a["kind"] != kind or (not a["district"].is_empty() and a["district"] != district):
 			continue
-		if kind == "power_failure":
+		var need := int(defs[kind].get("parts_required", 0))
+		if need > 0:
+			var parts: Array = defs[kind].get("parts", [])
+			if not parts.is_empty() and not part in parts:
+				return {"repaired": false, "progress": a["generators"].size()}
 			a["generators"][part] = true
-			var need := int(defs[kind].get("generators_required", 2))
 			if a["generators"].size() >= need:
 				active.erase(a)
 				return {"repaired": true, "progress": a["generators"].size()}
@@ -94,6 +102,22 @@ func is_active(kind: String, district: String = "") -> bool:
 		if a["kind"] == kind and (district.is_empty() or a["district"].is_empty() or a["district"] == district):
 			return true
 	return false
+
+
+## Parts already repaired for a multi-part repair (generators, comms consoles).
+func repaired_parts(kind: String) -> Dictionary:
+	for a: Dictionary in active:
+		if a["kind"] == kind:
+			return a["generators"]
+	return {}
+
+
+func comms_down() -> bool:
+	return is_active("comms_failure")
+
+
+func doors_locked(building: String) -> bool:
+	return is_active("door_lock", building)
 
 
 func power_out() -> bool:
@@ -120,9 +144,13 @@ func public_state() -> Array:
 	return out
 
 
-## Private panel data (traitors only).
-func panel(now: float) -> Dictionary:
+## Private panel data (traitors only). Kinds needing features the map lacks
+## (vehicles, bridges) are left out rather than shown disabled.
+func panel(now: float, features: Array = []) -> Dictionary:
 	var kinds := {}
 	for kind: String in defs:
+		var req: String = defs[kind].get("requires", "")
+		if not req.is_empty() and not req in features:
+			continue
 		kinds[kind] = {"ready_in": maxf(0.0, float(ready_at.get(kind, 0.0)) - now), "critical": bool(defs[kind]["critical"]), "targets": defs[kind]["targets"]}
 	return {"kinds": kinds, "team_ready_in": maxf(0.0, team_ready_at - now)}

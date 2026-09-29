@@ -635,6 +635,58 @@
    "z": 88.9,
    "district": "beach",
    "label": "Breaker"
+  },
+  {
+   "id": "cc_uplink_a",
+   "kind": "console",
+   "x": -15.5,
+   "z": -25,
+   "district": "central_command",
+   "label": "Uplink console A"
+  },
+  {
+   "id": "cc_uplink_b",
+   "kind": "console",
+   "x": 15.5,
+   "z": -27,
+   "district": "central_command",
+   "label": "Uplink console B"
+  },
+  {
+   "id": "panel_cc_hall",
+   "kind": "door_panel",
+   "x": 3.2,
+   "z": -5.4,
+   "district": "central_command",
+   "label": "Door override",
+   "building": "cc_hall"
+  },
+  {
+   "id": "panel_cc_annex",
+   "kind": "door_panel",
+   "x": 23.8,
+   "z": -48.5,
+   "district": "central_command",
+   "label": "Door override",
+   "building": "cc_annex"
+  },
+  {
+   "id": "panel_med_center",
+   "kind": "door_panel",
+   "x": -99.8,
+   "z": -24.5,
+   "district": "medical",
+   "label": "Door override",
+   "building": "med_center"
+  },
+  {
+   "id": "panel_harbor_warehouse",
+   "kind": "door_panel",
+   "x": 125.8,
+   "z": -44.5,
+   "district": "harbor",
+   "label": "Door override",
+   "building": "harbor_warehouse"
   }
  ],
  "cameras": [
@@ -944,6 +996,17 @@
   "gen_b",
   "gen_c"
  ],
+ "features": [],
+ "lockable_buildings": [
+  "cc_hall",
+  "cc_annex",
+  "med_center",
+  "harbor_warehouse"
+ ],
+ "medical_center_respawn": [
+  -115,
+  -4
+ ],
  "waypoints": {
   "cc_c": [
    0,
@@ -1052,6 +1115,14 @@
   "breaker_cc_wp": [
    -21,
    -12
+  ],
+  "cc_upa": [
+   -13,
+   -24
+  ],
+  "cc_upb": [
+   13,
+   -26
   ],
   "radar_wp": [
    4,
@@ -1366,6 +1437,14 @@
   [
    "cc_dw_out",
    "breaker_cc_wp"
+  ],
+  [
+   "cc_w",
+   "cc_upa"
+  ],
+  [
+   "cc_e",
+   "cc_upb"
   ],
   [
    "cc_dn_out",

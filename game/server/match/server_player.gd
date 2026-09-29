@@ -32,6 +32,12 @@ var suspect_until := -1.0
 var incident: Dictionary = {}  # last damage info (for incident review)
 var reported := false          # body already reported
 var spectator := false
+var carrying := ""            # delivery item being carried ("" = none)
+var emote := ""
+var emote_until := -1.0
+var inspect_target := ""
+var inspect_held := 0.0
+var ping_ready_at := 0.0
 var stats := {"shots": 0, "hits": 0, "downs": 0, "tasks": 0, "reports": 0, "repairs": 0, "sabotages": 0, "revived": 0, "distance": 0.0}
 
 

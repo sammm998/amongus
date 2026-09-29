@@ -2,17 +2,132 @@
   "team_cooldown_seconds": 30.0,
   "sabotages": {
     "blackout": {
-      "display_name": "Blackout", "alert": "BLACKOUT", "critical": false, "targets": "district",
-      "duration_seconds": 60.0, "cooldown_seconds": 90.0, "repair": "breaker", "repair_hold_seconds": 3.0
+      "display_name": "Blackout",
+      "alert": "BLACKOUT",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 60.0,
+      "cooldown_seconds": 90.0,
+      "repair": "breaker",
+      "repair_hold_seconds": 3.0
     },
     "camera_jam": {
-      "display_name": "Camera Jam", "alert": "CAMERAS OFFLINE", "critical": false, "targets": "district",
-      "duration_seconds": 45.0, "cooldown_seconds": 90.0, "repair": "security_reset", "repair_hold_seconds": 3.0
+      "display_name": "Camera Jam",
+      "alert": "CAMERAS OFFLINE",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 45.0,
+      "cooldown_seconds": 90.0,
+      "repair": "security_reset",
+      "repair_hold_seconds": 3.0
     },
     "power_failure": {
-      "display_name": "Power Failure", "alert": "POWER FAILURE", "critical": true, "targets": "none",
-      "duration_seconds": 90.0, "cooldown_seconds": 240.0, "repair": "generators", "repair_hold_seconds": 5.0,
-      "generators_required": 2
+      "display_name": "Power Failure",
+      "alert": "POWER FAILURE",
+      "critical": true,
+      "targets": "none",
+      "duration_seconds": 90.0,
+      "cooldown_seconds": 240.0,
+      "repair": "generators",
+      "repair_hold_seconds": 5.0,
+      "parts_required": 2,
+      "parts": [
+        "gen_a",
+        "gen_b",
+        "gen_c"
+      ]
+    },
+    "comms_failure": {
+      "display_name": "Comms Failure",
+      "alert": "COMMUNICATION FAILURE",
+      "critical": false,
+      "targets": "none",
+      "duration_seconds": -1.0,
+      "cooldown_seconds": 150.0,
+      "repair": "consoles",
+      "repair_hold_seconds": 3.0,
+      "parts_required": 2,
+      "parts": [
+        "cc_comms",
+        "relay_harbor"
+      ]
+    },
+    "false_alarm": {
+      "display_name": "False Alarm",
+      "alert": "",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 0.0,
+      "cooldown_seconds": 90.0,
+      "repair": "none",
+      "repair_hold_seconds": 0.0,
+      "fake_event": "gunfire"
+    },
+    "door_lock": {
+      "display_name": "Security Door Lock",
+      "alert": "DOORS LOCKED",
+      "critical": false,
+      "targets": "building",
+      "duration_seconds": 40.0,
+      "cooldown_seconds": 120.0,
+      "repair": "panel",
+      "repair_hold_seconds": 4.0
+    },
+    "medical_failure": {
+      "display_name": "Medical System Failure",
+      "alert": "MEDICAL SYSTEMS OFFLINE",
+      "critical": false,
+      "targets": "none",
+      "duration_seconds": 60.0,
+      "cooldown_seconds": 180.0,
+      "repair": "station",
+      "repair_hold_seconds": 3.0,
+      "repair_station": "med_records"
+    },
+    "radar_spoof": {
+      "display_name": "Radar Spoof",
+      "alert": "RADAR INTERFERENCE",
+      "critical": false,
+      "targets": "none",
+      "duration_seconds": 60.0,
+      "cooldown_seconds": 150.0,
+      "repair": "station",
+      "repair_hold_seconds": 4.0,
+      "repair_station": "cc_roof_radar",
+      "requires": "vehicles"
+    },
+    "vehicle_lockdown": {
+      "display_name": "Vehicle Lockdown",
+      "alert": "VEHICLE STATION LOCKED",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 60.0,
+      "cooldown_seconds": 120.0,
+      "repair": "panel",
+      "repair_hold_seconds": 3.0,
+      "requires": "vehicles"
+    },
+    "fuel_shutdown": {
+      "display_name": "Fuel Depot Shutdown",
+      "alert": "FUEL PUMPS OFFLINE",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 90.0,
+      "cooldown_seconds": 150.0,
+      "repair": "panel",
+      "repair_hold_seconds": 3.0,
+      "requires": "vehicles"
+    },
+    "bridge_lock": {
+      "display_name": "Bridge Lock",
+      "alert": "BRIDGE CLOSED",
+      "critical": false,
+      "targets": "district",
+      "duration_seconds": 45.0,
+      "cooldown_seconds": 150.0,
+      "repair": "panel",
+      "repair_hold_seconds": 3.0,
+      "requires": "bridges"
     }
   }
 }

@@ -229,6 +229,19 @@ func _choose_goal(visible: Array, now: float) -> void:
 				return
 	if not goal_kind.is_empty():
 		return
+	# Comms failure: agents reboot the consoles.
+	if role == "agent" and not bool(world.get("comms", true)) and rng.randf() < 0.6:
+		var fixed: Array = world.get("comms_parts", [])
+		for part: String in ["cc_comms", "relay_harbor"]:
+			if not part in fixed and m.map.stations.has(part):
+				_set_goal("repair", m.map.station_pos(part), part)
+				return
+	# Locked doors: agents use the override panels.
+	if role == "agent":
+		for b: String in world.get("doors", []):
+			if m.map.stations.has("panel_" + b) and rng.randf() < 0.4:
+				_set_goal("repair", m.map.station_pos("panel_" + b), b)
+				return
 	# Blackout repairs for agents in the dark.
 	if role == "agent":
 		for s: Dictionary in world.get("sabotages", []):
@@ -356,8 +369,9 @@ func _maybe_sabotage(dt: float, now: float) -> void:
 	if kind == "power_failure" and rng.randf() < 0.5:
 		return
 	var district := ""
-	if kinds[kind]["targets"] == "district":
-		var ds: Array = panel.get("districts", [])
+	var tgt: String = kinds[kind]["targets"]
+	if tgt == "district" or tgt == "building":
+		var ds: Array = panel.get("districts" if tgt == "district" else "buildings", [])
 		district = ds[rng.randi_range(0, ds.size() - 1)] if not ds.is_empty() else ""
 	_act("sabotage", 0, "%s|%s" % [kind, district])
 

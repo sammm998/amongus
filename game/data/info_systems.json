@@ -1,0 +1,60 @@
+{
+  "activity": {
+    "min_delay_seconds": 5.0,
+    "max_delay_seconds": 15.0,
+    "keep_seconds": 60.0,
+    "coalesce_seconds": 8.0
+  },
+  "camera_replay_seconds": 10.0,
+  "camera_record_hz": 5.0,
+  "camera_range_m": 45.0,
+  "camera_fov_degrees": 80.0,
+  "evidence_lifetime_seconds": 180.0,
+  "evidence_max": 400,
+  "casing_chance": 0.35,
+  "impact_chance": 0.5,
+  "evidence_send_radius_m": 45.0,
+  "inspect_hold_seconds": 2.0,
+  "inspect_evidence_hold_seconds": 0.6,
+  "inspect_noise_seconds": 15.0,
+  "coop_window_seconds": 3.0,
+  "ping_max_distance_m": 200.0,
+  "ping_lifetime_seconds": 8.0,
+  "emote_seconds": 2.5,
+  "emotes": [
+    "wave",
+    "point",
+    "shrug",
+    "cheer",
+    "facepalm",
+    "dance"
+  ],
+  "ping_kinds": [
+    "location",
+    "danger",
+    "vehicle",
+    "task",
+    "item",
+    "suspicious"
+  ],
+  "quick_chat": [
+    "Where were you?",
+    "I saw someone here",
+    "I heard gunshots",
+    "Camera was disabled",
+    "Power went out",
+    "Follow me",
+    "Stay together",
+    "I don't trust them",
+    "I was at Medical",
+    "Check the cameras",
+    "Someone took a vehicle",
+    "I saw a helicopter",
+    "Report the body"
+  ],
+  "comms_blocked_quick_chat": [
+    "Check the cameras",
+    "Follow me"
+  ],
+  "bubble_seconds": 5.0
+}
