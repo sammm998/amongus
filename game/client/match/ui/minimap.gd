@@ -1,0 +1,49 @@
+class_name Minimap
+extends Control
+## Top-left minimap: districts, roads, own position/heading, own task targets.
+## Never shows other players (GAME_SPEC §5.8).
+
+var map: MapData
+var game: ClientGameState
+var center := Vector3.ZERO
+var heading := 0.0
+var metres := 180.0  # visible span
+
+
+func _draw() -> void:
+	if map == null:
+		return
+	var r := size.x * 0.5
+	var c := size * 0.5
+	draw_circle(c, r, Color(0.05, 0.12, 0.2, 0.85))
+	var scale := size.x / metres
+	var to_px := func(p: Vector3) -> Vector2:
+		var d := Vector2(p.x - center.x, p.z - center.z) * scale
+		return c + d
+	for d: Dictionary in map.districts:
+		if d["id"] == "roads":
+			continue
+		var pc: Vector2 = to_px.call(Vector3(float(d["x"]), 0, float(d["z"])))
+		var col := Color(d["accent"])
+		col.a = 0.35 if not game.district_dark(d["id"]) else 0.08
+		draw_circle(pc, float(d["radius"]) * scale, col)
+	for road: Array in map.raw.get("roads", []):
+		for i in road.size() - 1:
+			var a: Vector2 = to_px.call(Vector3(road[i][0], 0, road[i][1]))
+			var b: Vector2 = to_px.call(Vector3(road[i + 1][0], 0, road[i + 1][1]))
+			draw_line(a, b, Color(0.8, 0.8, 0.8, 0.5), 3.0)
+	for b: Dictionary in map.raw.get("buildings", []):
+		var p0: Vector2 = to_px.call(Vector3(float(b["x"]) - float(b["w"]) * 0.5, 0, float(b["z"]) - float(b["d"]) * 0.5))
+		var p1: Vector2 = to_px.call(Vector3(float(b["x"]) + float(b["w"]) * 0.5, 0, float(b["z"]) + float(b["d"]) * 0.5))
+		draw_rect(Rect2(p0, p1 - p0), Color(0.9, 0.95, 1.0, 0.55))
+	if game.my_state() == Vitals.State.ALIVE:
+		for t: Dictionary in game.tasks:
+			if not t["done"] and map.stations.has(t["station"]):
+				var tp: Vector2 = to_px.call(map.station_pos(t["station"]))
+				if tp.distance_to(c) > r - 6:
+					tp = c + (tp - c).normalized() * (r - 6)
+				draw_circle(tp, 5.0, UITheme.AMBER)
+	var fwd := Vector2(-sin(heading), -cos(heading))
+	var side := Vector2(fwd.y, -fwd.x)
+	draw_colored_polygon(PackedVector2Array([c + fwd * 11, c - fwd * 7 + side * 7, c - fwd * 7 - side * 7]), UITheme.CYAN)
+	draw_arc(c, r - 1, 0, TAU, 64, UITheme.PANEL_BORDER, 2.0)

@@ -10,6 +10,11 @@ var server: ServerSession
 var client: ClientSession
 var match_server: MatchServer
 var net_config: Dictionary
+## Client-side view of the current match (fed by game messages).
+var game := ClientGameState.new()
+var _clock := 0.0
+## Set by "PLAY VS BOTS": the host asks the server to start as soon as it joins.
+var auto_start_requested := false
 
 
 func _ready() -> void:
@@ -20,8 +25,24 @@ func default_port() -> int:
 	return int(net_config["default_port"])
 
 
+var _loopback_hub: LoopbackHub
+
+
 func make_transport(kind: String) -> Transport:
-	return WebSocketTransport.new() if kind == "ws" else ENetTransport.new()
+	match kind:
+		"ws":
+			return WebSocketTransport.new()
+		"loopback":
+			if _loopback_hub == null:
+				_loopback_hub = LoopbackHub.new()
+			return LoopbackTransport.new(_loopback_hub)
+	return ENetTransport.new()
+
+
+## Single-player vs bots entirely in memory (works on every platform, incl. web).
+func play_offline(player_name: String) -> Error:
+	_loopback_hub = LoopbackHub.new()
+	return host_and_join(player_name, 1, "loopback")
 
 
 func start_server(port: int = -1, kind: String = "enet") -> Error:
@@ -67,6 +88,8 @@ func start_client(address: String, port: int = -1, kind: String = "enet", player
 	client.input_mode = InputClassifier.mode_name(InputRouter.mode)
 	client.state_changed.connect(func(state: int) -> void: client_state_changed.emit(state))
 	client.roster_changed.connect(func(players: Array) -> void: roster_changed.emit(players))
+	game.reset()
+	client.game_message.connect(func(type: int, payload: Dictionary) -> void: game.handle(type, payload, _clock))
 	return client.connect_to(address, port if port > 0 else default_port())
 
 
@@ -89,6 +112,19 @@ func host_and_join(player_name: String, port: int = -1, kind: String = "enet") -
 func stop_all() -> void:
 	stop_client()
 	stop_server()
+
+
+func local_time() -> float:
+	return _clock
+
+
+func send_action(kind: String, target: int = 0, text: String = "") -> void:
+	if client != null:
+		client.send_game(Protocol.Msg.ACTION, {"kind": kind, "target": target, "text": text})
+
+
+func _process(delta: float) -> void:
+	_clock += delta
 
 
 func _physics_process(delta: float) -> void:

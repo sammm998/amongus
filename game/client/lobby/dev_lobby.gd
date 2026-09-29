@@ -6,6 +6,7 @@ extends Node
 var _name_edit: LineEdit
 var _address_edit: LineEdit
 var _host_button: Button
+var _play_button: Button
 var _join_button: Button
 var _leave_button: Button
 var _status_label: Label
@@ -17,6 +18,7 @@ var _elapsed := 0.0
 var _expect_roster := -1
 var _quit_after := -1.0
 var _done := false
+var _auto_start := false
 
 
 func _ready() -> void:
@@ -35,7 +37,9 @@ func _ready() -> void:
 	_quit_after = args["quit_after"]
 	if not args["name"].is_empty():
 		_name_edit.text = args["name"]
-	if args["host"]:
+	if args["play"]:
+		_play_vs_bots()
+	elif args["host"]:
 		_host()
 	elif not args["connect"].is_empty():
 		_address_edit.text = args["connect"]
@@ -58,9 +62,23 @@ func _host() -> void:
 	_refresh()
 
 
+## On the web build the game server lives on the same host under /ws.
+static func web_server_url() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	var loc: Variant = JavaScriptBridge.eval("(location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws'", true)
+	return str(loc) if loc != null else ""
+
+
 func _join() -> void:
 	var address := _address_edit.text.strip_edges()
 	var port: int = GameData.args["port"]
+	if address.begins_with("ws://") or address.begins_with("wss://"):
+		var err_ws := NetworkManager.start_client(address, port, "ws", _player_name())
+		if err_ws != OK:
+			_status_label.text = "Could not connect: %s" % error_string(err_ws)
+		_refresh()
+		return
 	if address.count(":") == 1:
 		port = address.get_slice(":", 1).to_int()
 		address = address.get_slice(":", 0)
@@ -92,7 +110,27 @@ func _finish(code: int) -> void:
 	get_tree().quit(code)
 
 
-func _on_client_state(_state: int) -> void:
+func _on_client_state(state: int) -> void:
+	_refresh()
+	if state == ClientSession.State.CONNECTED and _expect_roster < 0:
+		_enter_match.call_deferred()
+
+
+func _enter_match() -> void:
+	# Wait for the first MATCH_INFO so the match scene knows the map.
+	var tries := 0
+	while NetworkManager.game.info.is_empty() and tries < 120:
+		await get_tree().process_frame
+		tries += 1
+	if NetworkManager.client != null and NetworkManager.client.is_connected_to_server():
+		get_tree().change_scene_to_file("res://client/match/match_client.tscn")
+
+
+func _play_vs_bots() -> void:
+	NetworkManager.auto_start_requested = true
+	var err := NetworkManager.play_offline(_player_name())
+	if err != OK:
+		_status_label.text = "Could not start: %s" % error_string(err)
 	_refresh()
 
 
@@ -126,7 +164,9 @@ func _on_login(_ok: bool) -> void:
 func _refresh() -> void:
 	var client := NetworkManager.client
 	var active := client != null and client.state in [ClientSession.State.CONNECTING, ClientSession.State.HANDSHAKING, ClientSession.State.CONNECTED]
-	_host_button.visible = not active
+	# Browsers cannot open a listening socket, so hosting is hidden on the web build.
+	_host_button.visible = not active and not OS.has_feature("web")
+	_play_button.visible = not active
 	_join_button.visible = not active
 	_leave_button.visible = active or NetworkManager.server != null
 	_name_edit.editable = not active
@@ -164,7 +204,7 @@ func _build_ui() -> void:
 	add_child(layer)
 	var root := MarginContainer.new()
 	root.theme = UITheme.build()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var safe := _safe_margins()
 	root.add_theme_constant_override("margin_left", safe.x)
 	root.add_theme_constant_override("margin_top", safe.y)
@@ -208,7 +248,7 @@ func _build_ui() -> void:
 	col.add_child(_name_edit)
 	col.add_child(_dim_label("SERVER"))
 	_address_edit = LineEdit.new()
-	_address_edit.text = "127.0.0.1"
+	_address_edit.text = web_server_url() if OS.has_feature("web") else "127.0.0.1"
 	_address_edit.placeholder_text = "address[:port]"
 	col.add_child(_address_edit)
 
@@ -219,6 +259,8 @@ func _build_ui() -> void:
 	_join_button = _button("JOIN", _join)
 	buttons.add_child(_host_button)
 	buttons.add_child(_join_button)
+	_play_button = _button("PLAY VS BOTS", _play_vs_bots)
+	col.add_child(_play_button)
 	_leave_button = _button("LEAVE", _leave)
 	col.add_child(_leave_button)
 	col.add_child(_button("SUNSET COVE", func() -> void:

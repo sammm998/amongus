@@ -81,7 +81,8 @@ func send(peer_id: int, bytes: PackedByteArray, reliable: bool = true) -> void:
 	if _peer == null or _peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return
 	_peer.set_target_peer(peer_id)
-	if reliable or not _supports_unreliable:
+	# Large packets would be fragmented anyway; send them reliably.
+	if reliable or not _supports_unreliable or bytes.size() > 1200:
 		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 	else:
 		_peer.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE

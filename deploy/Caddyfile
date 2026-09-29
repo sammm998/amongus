@@ -1,0 +1,22 @@
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:8080} {
+	encode gzip
+	# Game server (WebSocket) for online matches.
+	handle /ws* {
+		reverse_proxy 127.0.0.1:8081
+	}
+	# Health check for Railway.
+	handle /healthz {
+		respond "ok" 200
+	}
+	# Web client.
+	handle {
+		root * /app/web
+		file_server
+		header Cache-Control "no-cache"
+	}
+}

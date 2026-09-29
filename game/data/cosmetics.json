@@ -1,0 +1,16 @@
+{
+  "base_colors": [
+    { "id": "red",    "name": "Red",    "suit": "#e0413a", "accent": "#8e1f1a" },
+    { "id": "blue",   "name": "Blue",   "suit": "#2f6fe0", "accent": "#173a80" },
+    { "id": "green",  "name": "Green",  "suit": "#2fae4e", "accent": "#16632a" },
+    { "id": "yellow", "name": "Yellow", "suit": "#f5c518", "accent": "#b3770b" },
+    { "id": "orange", "name": "Orange", "suit": "#f57c1f", "accent": "#a4460a" },
+    { "id": "purple", "name": "Purple", "suit": "#8e4fd6", "accent": "#4e2782" },
+    { "id": "cyan",   "name": "Cyan",   "suit": "#2fd1d6", "accent": "#12797c" },
+    { "id": "pink",   "name": "Pink",   "suit": "#f48fc2", "accent": "#b3477f" },
+    { "id": "black",  "name": "Black",  "suit": "#34363d", "accent": "#16171a" },
+    { "id": "white",  "name": "White",  "suit": "#f2f2f4", "accent": "#9da3ad" },
+    { "id": "lime",   "name": "Lime",   "suit": "#a6e22e", "accent": "#5d8a0f" },
+    { "id": "navy",   "name": "Navy",   "suit": "#27356b", "accent": "#11183a" }
+  ]
+}
