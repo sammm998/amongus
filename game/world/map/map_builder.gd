@@ -15,6 +15,9 @@ const STYLES := {
 	"medical": {"wall": Color(0.96, 0.97, 0.97), "trim": Color(0.1, 0.66, 0.62), "roof": Color(0.8, 0.84, 0.84), "floor": Color(0.82, 0.88, 0.88), "glow": MeshKit.SLOT_GLOW},
 	"warehouse": {"wall": Color(0.22, 0.4, 0.6), "trim": Color(0.66, 0.34, 0.18), "roof": Color(0.5, 0.5, 0.52), "floor": Color(0.45, 0.45, 0.47), "glow": MeshKit.SLOT_GLOW},
 	"industrial": {"wall": Color(0.62, 0.64, 0.66), "trim": Color(0.95, 0.5, 0.12), "roof": Color(0.4, 0.42, 0.44), "floor": Color(0.4, 0.4, 0.42), "glow": MeshKit.SLOT_GLOW},
+	"house": {"wall": Color(0.94, 0.89, 0.78), "trim": Color(0.97, 0.97, 0.95), "roof": Color(0.72, 0.2, 0.15), "floor": Color(0.6, 0.45, 0.3), "glow": MeshKit.SLOT_GLOW, "pitched": true},
+	"house_blue": {"wall": Color(0.56, 0.72, 0.86), "trim": Color(0.97, 0.97, 0.95), "roof": Color(0.28, 0.3, 0.35), "floor": Color(0.6, 0.45, 0.3), "glow": MeshKit.SLOT_GLOW, "pitched": true},
+	"barn": {"wall": Color(0.66, 0.17, 0.12), "trim": Color(0.95, 0.94, 0.9), "roof": Color(0.35, 0.34, 0.33), "floor": Color(0.5, 0.4, 0.3), "glow": MeshKit.SLOT_GLOW, "pitched": true},
 	"hut": {"wall": Color(0.62, 0.45, 0.3), "trim": Color(0.42, 0.3, 0.2), "roof": Color(0.8, 0.66, 0.4), "floor": Color(0.55, 0.42, 0.3), "glow": MeshKit.SLOT_GLOW},
 }
 
@@ -208,6 +211,12 @@ static func _building(map: MapData, b: Dictionary, statics: StaticBody3D, kit: M
 						kit.add_box(Transform3D(Basis(), Vector3(wp.x, base + minf(2.0, h * 0.45), wp.z)), wsize, Color(1.0, 0.8, 0.5), style["glow"])
 	# Roof slab + floor.
 	_solid(statics, kit, Vector3(cx, base + h + 0.2, cz), Vector3(w + 0.8, 0.4, d + 0.8), style["roof"])
+	if kit != null and style.get("pitched", false):
+		# Gable roof (visual): ridge along the longer side.
+		var rh := minf(w, d) * 0.4
+		var rbasis := Basis() if d >= w else Basis(Vector3.UP, PI * 0.5)
+		var rsize := Vector3(w + 1.0, rh, d + 1.0) if d >= w else Vector3(d + 1.0, rh, w + 1.0)
+		kit.add_prism(Transform3D(rbasis, Vector3(cx, base + h + 0.4 + rh * 0.5, cz)), rsize, style["roof"])
 	if kit != null:
 		kit.add_box(Transform3D(Basis(), Vector3(cx, base + 0.03, cz)), Vector3(w - 0.2, 0.06, d - 0.2), style["floor"])
 		var district: String = b.get("district", "roads")
@@ -503,6 +512,46 @@ static func _vegetation(map: MapData, root: Node3D) -> void:
 			xforms[bush_kind].append(xf)
 		elif inland > 2.0 and r < 0.65:
 			xforms[fern_kind].append(xf)
+	# Inland forests (broadleaf + conifers higher up), grass tufts and rocks.
+	var first_extra := kinds.size()
+	for i in 2:
+		kinds.append(VegetationBuilder.broadleaf(rng, 6.5 + i * 2.0))
+	for i in 2:
+		kinds.append(VegetationBuilder.pine(rng, 9.0 + i * 3.0))
+	var grass_kind := kinds.size()
+	kinds.append(VegetationBuilder.grass_tuft(rng))
+	var rock_kind := kinds.size()
+	for i in 3:
+		kinds.append(RockBuilder.rock(rng, Vector3(1.0, 0.6, 0.8) * (0.8 + i * 0.5), 0.5))
+	while xforms.size() < kinds.size():
+		xforms.append([])
+	for i in int(veg.get("trees", 0)):
+		var x := rng.randf_range(float(area[0]), float(area[2]))
+		var z := rng.randf_range(float(area[1]), float(area[3]))
+		var inland := map.coast_distance(x, z) - map.beach_width
+		if inland < 25.0 or _blocked(blockers, x, z):
+			continue
+		var h := map.height(x, z)
+		var n := map.normal(x, z)
+		if n.y < 0.8:
+			continue
+		var pine := h > 14.0 or rng.randf() < 0.3
+		var k := first_extra + (2 if pine else 0) + rng.randi_range(0, 1)
+		xforms[k].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.3)), Vector3(x, h - 0.15, z)))
+	for i in int(veg.get("grass", 0)):
+		var x := rng.randf_range(float(area[0]), float(area[2]))
+		var z := rng.randf_range(float(area[1]), float(area[3]))
+		if map.coast_distance(x, z) - map.beach_width < 4.0 or _blocked(blockers, x, z):
+			continue
+		xforms[grass_kind].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.6)), Vector3(x, map.height(x, z) - 0.05, z)))
+	for i in int(veg.get("rocks", 0)):
+		var x := rng.randf_range(float(area[0]), float(area[2]))
+		var z := rng.randf_range(float(area[1]), float(area[3]))
+		if map.height(x, z) < 0.3 or _blocked(blockers, x, z):
+			continue
+		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))).scaled(Vector3.ONE * rng.randf_range(0.6, 1.6))
+		xforms[rock_kind + rng.randi_range(0, 2)].append(Transform3D(basis, Vector3(x, map.height(x, z) - 0.2, z)))
+
 	# One MultiMesh per kind per 128 m cell: off-screen cells are culled and
 	# visibility ranges work per cell (a single island-wide MultiMesh has one AABB).
 	for k in kinds.size():
@@ -522,11 +571,12 @@ static func _vegetation(map: MapData, root: Node3D) -> void:
 				mm.set_instance_transform(i, list[i])
 			var mmi := MultiMeshInstance3D.new()
 			mmi.multimesh = mm
-			# Palms stay visible further (landmarks); ground cover fades early.
-			mmi.visibility_range_end = 420.0 if k < bush_kind else 110.0
+			# Trees stay visible far (landmarks); ground cover fades early.
+			var tree := k < bush_kind or (k >= first_extra and k < grass_kind)
+			mmi.visibility_range_end = 420.0 if tree else (60.0 if k == grass_kind else 140.0)
 			mmi.visibility_range_end_margin = 20.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-			if k >= bush_kind:
+			if not tree and k < rock_kind:
 				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			root.add_child(mmi)
 

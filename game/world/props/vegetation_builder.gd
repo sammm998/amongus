@@ -84,6 +84,60 @@ static func bush(rng: RandomNumberGenerator, size: float = 1.6) -> ArrayMesh:
 	return _commit_leaves(leaves, bush_material())
 
 
+## Round broadleaf tree: short trunk + lumpy clustered canopy (stylised, bright).
+static func broadleaf(rng: RandomNumberGenerator, height: float = 7.0) -> ArrayMesh:
+	var kit := MeshKit.new()
+	var top := Vector3(rng.randf_range(-0.3, 0.3), height * 0.55, rng.randf_range(-0.3, 0.3))
+	kit.add_tube(Vector3.ZERO, top, 0.32, 0.2, TRUNK, 8)
+	var greens := [Color(0.22, 0.5, 0.14), Color(0.3, 0.58, 0.16), Color(0.18, 0.42, 0.12), Color(0.36, 0.62, 0.2)]
+	var lobes := rng.randi_range(5, 7)
+	for i in lobes:
+		var a := TAU * i / lobes + rng.randf_range(-0.3, 0.3)
+		var r := height * rng.randf_range(0.16, 0.26)
+		var off := Vector3(cos(a), rng.randf_range(-0.2, 0.5), sin(a)) * height * 0.2
+		var basis := Basis().scaled(Vector3(1.0, rng.randf_range(0.75, 0.95), 1.0))
+		kit.add_sphere(Transform3D(basis, top + Vector3(0, height * 0.12, 0) + off), r, greens[rng.randi() % greens.size()], 8)
+	kit.add_sphere(Transform3D(Basis(), top + Vector3(0, height * 0.3, 0)), height * 0.24, greens[1], 8)
+	return kit.commit()
+
+
+## Conifer: trunk + three stacked cones.
+static func pine(rng: RandomNumberGenerator, height: float = 10.0) -> ArrayMesh:
+	var kit := MeshKit.new()
+	kit.add_tube(Vector3.ZERO, Vector3(0, height * 0.35, 0), 0.28, 0.2, TRUNK_RING, 8)
+	var dark := Color(0.1, 0.3, 0.14)
+	var light := Color(0.16, 0.4, 0.18)
+	for i in 3:
+		var t := float(i) / 3.0
+		var r := height * lerpf(0.3, 0.14, t)
+		var ch := height * 0.38
+		kit.add_cylinder(Transform3D(Basis(), Vector3(0, height * (0.3 + t * 0.25) + ch * 0.5, 0)), 0.0, r, ch, dark.lerp(light, t), 9)
+	return kit.commit()
+
+
+## Grass tuft: a handful of short bright blades (ground cover near the player).
+static func grass_tuft(rng: RandomNumberGenerator, size: float = 0.6) -> ArrayMesh:
+	var leaves := _leaf_arrays()
+	for i in rng.randi_range(6, 9):
+		var angle := rng.randf() * TAU
+		var dir := (Vector3(cos(angle), 0.0, sin(angle)) * 0.35 + Vector3.UP).normalized()
+		_add_leaf(leaves, Vector3(rng.randf_range(-0.1, 0.1), 0, rng.randf_range(-0.1, 0.1)), dir, size * rng.randf_range(0.7, 1.2), size * 0.1, 0.25, rng.randf_range(0.9, 1.2))
+	return _commit_leaves(leaves, grass_material())
+
+
+static var _grass_material: ShaderMaterial
+
+
+static func grass_material() -> ShaderMaterial:
+	if _grass_material == null:
+		_grass_material = ShaderMaterial.new()
+		_grass_material.shader = FOLIAGE_SHADER
+		_grass_material.set_shader_parameter("base_color", Color(0.16, 0.36, 0.1))
+		_grass_material.set_shader_parameter("tip_color", Color(0.5, 0.72, 0.26))
+		_grass_material.set_shader_parameter("wind_strength", 0.12)
+	return _grass_material
+
+
 ## Fern: many narrow arching fronds.
 static func fern(rng: RandomNumberGenerator, size: float = 1.2) -> ArrayMesh:
 	var leaves := _leaf_arrays()

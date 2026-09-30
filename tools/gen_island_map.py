@@ -71,6 +71,8 @@ districts = [
     {"id": "radio_station", "name": "Radio Station", "x": -60, "z": -330, "radius": 40, "color": "#3a4452", "accent": "#e84a4a"},
     {"id": "research", "name": "Research Lab", "x": -470, "z": 200, "radius": 48, "color": "#dfe7ee", "accent": "#7a5cff"},
     {"id": "village", "name": "Coastal Village", "x": 340, "z": 300, "radius": 60, "color": "#c9a878", "accent": "#e8603a"},
+    {"id": "pine_hollow", "name": "Pine Hollow", "x": -210, "z": -40, "radius": 50, "color": "#8a6f4e", "accent": "#5fb04a"},
+    {"id": "sandy_acres", "name": "Sandy Acres", "x": 170, "z": 140, "radius": 50, "color": "#d8c690", "accent": "#e8a33a"},
     {"id": "roads", "name": "Island Road", "x": 0, "z": 0, "radius": 900, "color": "#666666", "accent": "#ffcc33"},
 ]
 
@@ -178,6 +180,27 @@ item("assault_rifle", 312, 280, rarity="standard"); item("shotgun", 360, 322, ra
 item("ammo_medium", 336, 272, amount=60); item("ammo_shells", 318, 318, amount=10)
 item("shield_cell", 362, 285, amount=2); item("med_patch", 352, 322, amount=2)
 
+# Residential neighbourhoods: pitched-roof houses and a barn along the roads.
+def neighbourhood(did, cx, cz, houses, barn=None):
+    terrain["flats"].append({"x": cx, "z": cz, "radius": 58, "height": 3.0, "blend": 0.5, "paved": False})
+    for k, (dx, dz, style) in enumerate(houses):
+        door_side = "s" if dz < 0 else "n"
+        building("%s_house_%d" % (did, k), did, style, cx + dx, cz + dz, 9, 8, 3.6, [{"side": door_side, "offset": 0, "width": 2.2}])
+        item(["assault_rifle", "shotgun", "med_patch", "shield_cell"][k % 4], cx + dx + 1, cz + dz, **({"rarity": "standard"} if k % 4 < 2 else {"amount": 2}))
+    if barn:
+        building("%s_barn" % did, did, "barn", cx + barn[0], cz + barn[1], 14, 10, 6.5, [{"side": "e", "offset": 0, "width": 5}])
+    prop("crate_stack", cx + 4, cz + 2, 2, 1.6, 2)
+    prop("container", cx - 6, cz + 3, 6, 2.6, 2.5, color="#3c7a4a")
+
+neighbourhood("pine_hollow", -210, -40, [(-24, -18, "house"), (-6, -20, "house_blue"), (12, -18, "house"), (-22, 18, "house_blue"), (-4, 20, "house"), (14, 18, "house_blue")], barn=(34, 0))
+station("breaker_pine_hollow", "breaker", -210 - 24 + 4.7, -40 - 18, "pine_hollow", label="Breaker")
+neighbourhood("sandy_acres", 170, 140, [(-20, -18, "house_blue"), (0, -20, "house"), (20, -18, "house_blue"), (-20, 18, "house"), (0, 20, "house_blue"), (20, 18, "house")])
+station("breaker_sandy_acres", "breaker", 170 - 20 + 4.7, 140 - 18, "sandy_acres", label="Breaker")
+extra_roads = [
+    [[-170, 22], [-200, -10], [-210, -40], [-250, -40]],
+    [[100, -10], [150, 60], [170, 140], [230, 200]],
+]
+
 # Relays live on the roads between districts (task stations from the slice).
 station("relay_road", "relay", -170, 22, "roads", label="Roadside relay")
 station("relay_harbor", "relay", 300, 18, "roads", label="Harbor relay")
@@ -194,6 +217,7 @@ roads = [
     [[300, 20], [330, 140], [335, 265]],                                  # -> Village
     [[-490, -245], [-340, -245]],                                         # runway
 ]
+roads.extend(extra_roads)
 for r in S.roads:  # district-local slice roads
     did = slice_district(r[0][0], r[0][1], 0)
     if did and did != "central_command" and all(slice_district(x, z, 20) == did for x, z in r):
@@ -225,7 +249,7 @@ def door_points(b, door, dist):
     return [b["x"] - hw - dist, b["z"] + off]
 
 
-new_ids = {"power_station", "airfield", "radio_station", "research", "village"}
+new_ids = {"power_station", "airfield", "radio_station", "research", "village", "pine_hollow", "sandy_acres"}
 for b in buildings:
     if b["district"] not in new_ids:
         continue
@@ -336,7 +360,7 @@ out = {
     "collision": {"center": [0, 0], "size": 1600},
     "boundary": {"x": 0, "z": 10, "rx": 730, "rz": 500, "segments": 72, "height": 30},
     "sun_direction": S.__dict__.get("sun_direction", [0.72, 0.075, -0.69]),
-    "vegetation": {"area": [-680, -460, 680, 470], "samples": 70000, "palms": 1500},
+    "vegetation": {"area": [-680, -460, 680, 470], "samples": 70000, "palms": 1400, "trees": 9000, "grass": 60000, "rocks": 1500},
     "districts": districts, "buildings": buildings, "props": props, "stations": stations,
     "cameras": cameras, "spawns": spawns, "loot": loot, "roads": roads,
     "meeting_center": [0, -22], "medical_respawn": ["med_pod_1", "med_pod_2"],
