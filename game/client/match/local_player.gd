@@ -37,6 +37,8 @@ var aiming := false
 var aim_point := Vector3.ZERO
 var remote_hitboxes: Callable   # () -> Array of [feet: Vector3, height: float]
 var air := 0                     # PlayerMotor.Air, predicted; corrected by the server
+var in_vehicle := false          # seated: the server drives us, the camera follows the vehicle
+var vehicle_kind := ""           # "car" / "plane" while seated
 var canopy: Node3D
 
 var _yaw_pivot: Node3D
@@ -170,6 +172,7 @@ func build_input(dt: float) -> PlayerInput:
 		b |= PlayerInput.RELOAD if (Input.is_action_pressed("reload") or _touch("reload")) else 0
 		b |= PlayerInput.INTERACT if (Input.is_action_pressed("interact") or _touch("interact")) else 0
 		b |= PlayerInput.INSPECT if (Input.is_action_pressed("inspect") or _touch("inspect")) else 0
+		b |= PlayerInput.VEHICLE if (Input.is_action_pressed("vehicle") or _touch("vehicle")) else 0
 		if touch != null and touch.take_pressed("flashlight"):
 			flashlight_on = not flashlight_on
 		b |= PlayerInput.FLASHLIGHT if flashlight_on else 0
@@ -215,6 +218,11 @@ func _apply_aim_assist(dt: float) -> void:
 # ------------------------------------------------------------ simulation ---
 
 func simulate(inp: PlayerInput, frozen: bool) -> void:
+	if in_vehicle:
+		history.clear()
+		avatar.visible = false
+		canopy.visible = false
+		return
 	var state_id := game.my_state()
 	var downed := state_id == Vitals.State.DOWNED
 	var state := {"frozen": frozen, "downed": downed, "stunned": float(game.me.get("stun", 0.0)) > 0.0, "crouching": inp.has(PlayerInput.CROUCH) and not downed, "air": air}
@@ -270,7 +278,9 @@ func update_camera(delta: float, spectate_target: Vector3 = Vector3.INF) -> void
 	_yaw_pivot.rotation = Vector3(0, yaw, 0)
 	_pitch_pivot.rotation = Vector3(pitch, 0, 0)
 	var arm := ARM_LENGTH
-	if air == PlayerMotor.Air.PLANE:
+	if in_vehicle:
+		arm = 13.0 if vehicle_kind == "plane" else 7.5
+	elif air == PlayerMotor.Air.PLANE:
 		arm = 26.0
 	elif air != PlayerMotor.Air.NONE:
 		arm = 7.0

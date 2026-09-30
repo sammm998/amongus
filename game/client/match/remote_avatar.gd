@@ -104,7 +104,7 @@ func apply(pos: Vector3, yaw: float, p_state: int, flags: int, delta: float) -> 
 	_bubble_time = maxf(0.0, _bubble_time - delta)
 	_bubble.visible = _bubble_time > 0.0
 	# Opening drop: hidden inside the plane, face-down in freefall, canopy when gliding.
-	avatar.visible = flags & 256 == 0
+	avatar.visible = flags & (256 | 2048) == 0  # in the drop plane or seated in a vehicle
 	avatar.rotation.x = lerpf(avatar.rotation.x, -1.25 if flags & 512 != 0 else 0.0, clampf(delta * 8.0, 0.0, 1.0))
 	_canopy.visible = flags & 1024 != 0
 	_canopy.rotation.y = avatar.rotation.y

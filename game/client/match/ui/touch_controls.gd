@@ -12,6 +12,7 @@ var context_label := ""
 var inspect_label := ""
 var context_progress := 0.0
 var flashlight_available := false
+var vehicle_available := false
 var buttons: Array = []  # [{id, center: Vector2 (relative 0..1 from bottom-right), radius, label, toggle}]
 var _joy_index := -1
 var _joy_origin := Vector2.ZERO
@@ -33,6 +34,7 @@ func _ready() -> void:
 		{"id": "interact", "offset": Vector2(-300, -110), "radius": 50.0, "label": "USE"},
 		{"id": "flashlight", "offset": Vector2(-70, -410), "radius": 32.0, "label": "LIGHT"},
 		{"id": "inspect", "offset": Vector2(-420, -160), "radius": 40.0, "label": "INSPECT"},
+		{"id": "vehicle", "offset": Vector2(-420, -290), "radius": 42.0, "label": "CAR"},
 	]
 
 
@@ -47,6 +49,8 @@ func _visible_button(b: Dictionary) -> bool:
 		return not context_label.is_empty()
 	if b["id"] == "inspect":
 		return not inspect_label.is_empty()
+	if b["id"] == "vehicle":
+		return vehicle_available
 	return true
 
 

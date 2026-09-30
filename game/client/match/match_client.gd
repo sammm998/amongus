@@ -116,6 +116,13 @@ func _on_snapshot(p: Dictionary) -> void:
 	if not me.has("pos"):
 		return
 	var server_pos: Vector3 = me["pos"]
+	if int(me.get("vehicle", -1)) >= 0:
+		local.in_vehicle = true  # position comes from the vehicle view (_update_vehicles)
+		return
+	if local.in_vehicle:
+		local.in_vehicle = false
+		local.teleport(server_pos, me["vel"], int(me.get("air", 0)))
+		return
 	var server_air := int(me.get("air", 0))
 	var snap_distance := 6.0 if server_air == PlayerMotor.Air.NONE else 30.0
 	if _teleport_pending or server_pos.distance_to(local.body.global_position) > snap_distance:
@@ -126,7 +133,80 @@ func _on_snapshot(p: Dictionary) -> void:
 	local.reconcile(int(p["ack"]), server_pos, me["vel"], frozen, server_air)
 
 
-const AIRBORNE_FLAGS := 256 | 512 | 1024
+const AIRBORNE_FLAGS := 256 | 512 | 1024 | 2048
+const PAINTS := [Color(0.85, 0.32, 0.12), Color(0.15, 0.45, 0.8), Color(0.2, 0.6, 0.3), Color(0.9, 0.75, 0.15), Color(0.75, 0.2, 0.35), Color(0.9, 0.9, 0.88)]
+var _vehicle_views: Dictionary = {}  # id -> Node3D
+var _vehicle_prev_yaw: Dictionary = {}
+
+
+## Drivable vehicles: interpolated models, own seat, enter/drive hints.
+func _update_vehicles(delta: float) -> void:
+	var vcfg: Dictionary = GameData.table("vehicles")
+	var now := game.server_now(NetworkManager.local_time())
+	var mine := int(game.me.get("vehicle", -1))
+	var sampled := game.sample_vehicles(now - INTERP_DELAY, now, mine)
+	var hint := ""
+	var nearest := INF
+	var nearest_name := ""
+	for id: int in sampled:
+		var s: Array = sampled[id]
+		var tcfg: Dictionary = vcfg["types"][s[3]]
+		var view: Node3D = _vehicle_views.get(id)
+		if view == null:
+			var paint: Color = PAINTS[id % PAINTS.size()]
+			view = VehicleProps.prop_plane(Color(0.93, 0.93, 0.9), paint) if tcfg["kind"] == "plane" else VehicleProps.buggy(paint)
+			add_child(view)
+			_vehicle_views[id] = view
+		var pos: Vector3 = s[0]
+		var yaw: float = s[1]
+		var basis := Basis(Vector3.UP, yaw)
+		if tcfg["kind"] == "plane":
+			var turn := wrapf(yaw - float(_vehicle_prev_yaw.get(id, yaw)), -PI, PI) / maxf(delta, 0.001)
+			var roll := clampf(-turn * 0.6, -0.7, 0.7)
+			basis = Basis.from_euler(Vector3(float(s[2]), yaw, roll))
+			var prop := view.get_node_or_null("Prop") as Node3D
+			if prop != null:
+				prop.rotate_z(clampf(float(s[7]) * 0.8 + (4.0 if s[4] >= 0 else 0.0), 0.0, 40.0) * delta)
+		else:
+			var n := map.normal(pos.x, pos.z)
+			basis = Basis(Quaternion(Vector3.UP, n)) * basis
+		if bool(s[6]):
+			basis = basis * Basis(Vector3.FORWARD, 0.35)
+			if not view.has_meta("smoke"):
+				var smoke := SmokePlume.create(0.08, Color(0.2, 0.2, 0.2, 0.6), 24)
+				smoke.position = Vector3(0, 1.5, 0)
+				view.add_child(smoke)
+				view.set_meta("smoke", true)
+		_vehicle_prev_yaw[id] = yaw
+		view.global_transform = Transform3D(basis, pos)
+		if id == mine:
+			var seat := int(game.me.get("seat", 0))
+			var o: Array = tcfg["seat_offsets"][mini(seat, tcfg["seat_offsets"].size() - 1)]
+			local.vehicle_kind = tcfg["kind"]
+			local.body.global_position = view.global_transform * Vector3(o[0], o[1], o[2]) - Vector3(0, 0.6, 0)
+			local.body.velocity = Vector3.ZERO
+			var kmh := int(absf(float(s[7])) * 3.6)
+			if tcfg["kind"] == "plane":
+				hint = "%d km/h · W throttle · S slow down · MOUSE steers · F bail out (parachute)" % kmh
+			elif seat == 0:
+				hint = "%d km/h · W/S drive · A/D steer · SHIFT boost · F get out" % kmh
+			else:
+				hint = "PASSENGER · F get out"
+		elif not bool(s[6]) and mine < 0:
+			var d := pos.distance_to(local.body.global_position)
+			if d < nearest:
+				nearest = d
+				nearest_name = tcfg["display_name"]
+	for id: int in _vehicle_views.keys():
+		if not sampled.has(id):
+			_vehicle_views[id].queue_free()
+			_vehicle_views.erase(id)
+	var can_enter := mine < 0 and nearest <= float(vcfg["enter_range_m"]) and game.my_state() == Vitals.State.ALIVE and local.air == PlayerMotor.Air.NONE
+	if can_enter:
+		var key := "TAP CAR" if InputRouter.mode == InputClassifier.Mode.TOUCH else "PRESS F"
+		hint = "%s — %s" % [key, ("FLY THE " if nearest_name.contains("plane") else "DRIVE THE ") + nearest_name.to_upper()]
+	hud.set_vehicle_hint(hint)
+	hud.touch.vehicle_available = can_enter or mine >= 0
 var _plane: Node3D
 
 
@@ -206,7 +286,8 @@ func _process(delta: float) -> void:
 	_update_pings(delta)
 	_update_drop()
 	var spectating := game.is_spectator() or game.my_state() == Vitals.State.ELIMINATED
-	local.avatar.visible = not game.is_spectator() and local.air != PlayerMotor.Air.PLANE
+	_update_vehicles(delta)
+	local.avatar.visible = not game.is_spectator() and local.air != PlayerMotor.Air.PLANE and not local.in_vehicle
 	var target := Vector3.INF
 	if spectating and not avatars.is_empty():
 		var living: Array = avatars.values().filter(func(a: RemoteAvatar) -> bool: return a.state == Vitals.State.ALIVE)

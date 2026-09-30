@@ -74,7 +74,15 @@ Beach, Power Station, Airfield, Radio Station, Research Lab, Coastal Village) ge
 land, free-falls, the canopy opens at `chute_open_altitude`, lands; numbers in `data/drop.json`.
 Tests: `tests/match/drop_test.gd` (everyone drops, uses the canopy, lands on land).
 
-Next: vehicles (M4) — the island is now big enough that they matter; minimap zoom; drop path on the full map.
+Vehicles (M4 start): buggies in every district and prop planes on the airfield (`data/vehicles.json`,
+map `vehicles`). F / CAR button enters and leaves; cars W/S/A/D + Shift boost; planes W throttle, mouse
+steers, F bails out with a parachute. Server-authoritative `VehicleMotor` follows the baked height grid and
+collides only with structures (layer 16); wrecks respawn after 60 s. Tests: `tests/match/vehicle_test.gd`.
+Rules: 3 gun shots per match, knife (slot 4) — backstab downs, frontal stab is weak.
+Perf: terrain collision tiled (one huge height map was ~100x slower far from the centre), vegetation
+chunked, lamps only at night, web render preset, minimap clipped.
+
+Next: vehicles polish — the island is now big enough that they matter; minimap zoom; drop path on the full map.
 
 ## Decisions
 - Deployment: Railway runs one container: Caddy on `$PORT` serves the Web export and proxies `/ws` to the

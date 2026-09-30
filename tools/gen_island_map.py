@@ -311,6 +311,24 @@ for name, (x, z) in list(W.items()):
 
 spawns = [dict(s) for s in S.spawns]
 
+# Drivable vehicles: buggies in every district, prop planes on the airfield.
+HALF_PI = math.pi / 2
+vehicles = [
+    {"type": "buggy", "x": 26, "z": 8, "yaw": math.pi},
+    {"type": "buggy", "x": 32, "z": 8, "yaw": math.pi},
+    {"type": "buggy", "x": -300, "z": 92, "yaw": HALF_PI},
+    {"type": "buggy", "x": 548, "z": 78, "yaw": -HALF_PI},
+    {"type": "buggy", "x": 24, "z": 392, "yaw": 0.0},
+    {"type": "buggy", "x": 262, "z": -205, "yaw": 0.6},
+    {"type": "buggy", "x": 322, "z": 250, "yaw": math.pi},
+    {"type": "buggy", "x": -438, "z": 228, "yaw": HALF_PI},
+    {"type": "buggy", "x": -395, "z": -215, "yaw": 0.0},
+    {"type": "buggy", "x": -48, "z": -305, "yaw": math.pi},
+    {"type": "prop_plane", "x": -482, "z": -245, "yaw": -HALF_PI},
+    {"type": "prop_plane", "x": -470, "z": -262, "yaw": -HALF_PI},
+    {"type": "prop_plane", "x": -470, "z": -228, "yaw": -HALF_PI},
+]
+
 out = {
     "id": "island", "name": "Traitor Island",
     "terrain": terrain,
@@ -327,6 +345,7 @@ out = {
     "lockable_buildings": ["cc_hall", "cc_annex", "med_center", "harbor_warehouse"],
     "medical_center_respawn": [-330, 74],
     "drop": {"from": [-760, -420], "to": [760, 440]},
+    "vehicles": vehicles,
     "waypoints": W, "edges": E,
 }
 json.dump(out, open("game/data/maps/island.json", "w"), separators=(",", ":"))

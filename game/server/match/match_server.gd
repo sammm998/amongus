@@ -59,7 +59,9 @@ var _doors_locked: Dictionary = {}
 var rng := RandomNumberGenerator.new()
 var motor: PlayerMotor
 var drop_cfg: Dictionary
-var drop: Dictionary = {}  # active plane path: from, dir, speed, start, t_open, t_close
+var drop: Dictionary = {}
+var vehicles_cfg: Dictionary
+var vehicles: Dictionary = {}  # id -> ServerVehicle  # active plane path: from, dir, speed, start, t_open, t_close
 var world_viewport: SubViewport
 var world: Node3D
 
@@ -96,6 +98,7 @@ func setup(p_map_id: String = "slice", p_mode: String = "standard", overrides: D
 	info_cfg = GameData.table("info_systems")
 	settings = MatchSettings.build(GameData.table("lobby_defaults"), GameData.table("modes"), mode, overrides)
 	drop_cfg = GameData.table("drop")
+	vehicles_cfg = GameData.table("vehicles")
 	motor = PlayerMotor.new(movement_cfg, drop_cfg)
 	map = MapData.load_map(map_id)
 	_bot_names = bots_cfg["names"].duplicate()
@@ -113,6 +116,22 @@ func _build_world() -> void:
 	add_child(world_viewport)
 	world = MapBuilder.build(map, false)
 	world_viewport.add_child(world)
+	var next_id := 1
+	for spec: Dictionary in map.raw.get("vehicles", []):
+		var v := ServerVehicle.new()
+		v.id = next_id
+		next_id += 1
+		v.type_id = spec["type"]
+		v.cfg = vehicles_cfg["types"][v.type_id]
+		v.body = VehicleMotor.make_body(v.cfg)
+		v.body.name = "V%d" % v.id
+		world.add_child(v.body)
+		v.motor = VehicleMotor.new(v.cfg, map.height)
+		v.seats.resize(int(v.cfg["seats"]))
+		v.spawn_pos = map.ground_point(float(spec["x"]), float(spec["z"])) + Vector3(0, 0.3, 0)
+		v.spawn_yaw = float(spec.get("yaw", 0.0))
+		v.reset()
+		vehicles[v.id] = v
 
 
 func _reset_match_state() -> void:
@@ -213,6 +232,8 @@ func _create_player(id: int, display_name: String, bot: bool) -> ServerPlayer:
 
 func _remove_player(id: int) -> void:
 	var p: ServerPlayer = players[id]
+	if p.vehicle >= 0:
+		_exit_vehicle(p)
 	if p.body != null:
 		p.body.queue_free()
 	players.erase(id)
@@ -320,6 +341,7 @@ func tick(delta: float) -> void:
 	if phases.tick(delta):
 		_on_phase_changed(before)
 	_process_players(delta)
+	_process_vehicles(delta)
 	if phases.is_playing():
 		_process_playing(delta)
 	elif phases.in_meeting():
@@ -407,6 +429,7 @@ func _replay_private_state_to_bot(p: ServerPlayer) -> void:
 
 
 func _spawn_all() -> void:
+	_reset_vehicles()
 	var spawns := map.spawn_points()
 	var order: Array = range(spawns.size())
 	order.shuffle()
@@ -422,6 +445,114 @@ func _spawn_all() -> void:
 		i += 1
 	if bool(drop_cfg.get("enabled", false)) and map.raw.has("drop"):
 		_start_drop()
+
+
+# -------------------------------------------------------------- vehicles ---
+
+func _reset_vehicles() -> void:
+	for p: ServerPlayer in players.values():
+		if p.vehicle >= 0:
+			_exit_vehicle(p)
+	for v: ServerVehicle in vehicles.values():
+		v.reset()
+
+
+## F / vehicle button: leave the current vehicle, or take the closest free seat.
+func _toggle_vehicle(p: ServerPlayer) -> void:
+	if p.vehicle >= 0:
+		_exit_vehicle(p)
+		return
+	if not p.is_living() or p.air != PlayerMotor.Air.NONE or not p.carrying.is_empty():
+		return
+	var best: ServerVehicle = null
+	var best_d := float(vehicles_cfg["enter_range_m"])
+	for v: ServerVehicle in vehicles.values():
+		var d := v.body.global_position.distance_to(p.feet())
+		if not v.is_destroyed() and v.free_seat() >= 0 and d <= best_d:
+			best = v
+			best_d = d
+	if best == null:
+		return
+	var seat := best.free_seat()
+	best.seats[seat] = p.id
+	p.vehicle = best.id
+	p.seat = seat
+	p.body.collision_layer = 0
+	p.body.collision_mask = 0
+	p.body.velocity = Vector3.ZERO
+	_cancel_healing(p)
+	p.interact_target = ""
+	activity.record("vehicle", map.district_at(p.feet()), now, rng)
+
+
+func _exit_vehicle(p: ServerPlayer) -> void:
+	var v: ServerVehicle = vehicles.get(p.vehicle)
+	p.vehicle = -1
+	p.seat = -1
+	p.body.collision_layer = 2
+	p.body.collision_mask = 1
+	if v == null:
+		return
+	var i := v.seats.find(p.id)
+	if i >= 0:
+		v.seats[i] = -1
+	var yaw := float(v.state["yaw"])
+	var side := Vector3(cos(yaw), 0.0, -sin(yaw))
+	var out := v.body.global_position + side * (float(v.cfg["size"][0]) * 0.5 + 1.2)
+	var ground_y := map.height(out.x, out.z)
+	if bool(v.state["airborne"]) and out.y - ground_y > float(vehicles_cfg["bail_out_min_height_m"]):
+		p.body.global_position = out
+		p.body.velocity = v.body.velocity * 0.5
+		p.air = PlayerMotor.Air.FREEFALL  # bail out: freefall, then the canopy opens
+		return
+	p.body.global_position = Vector3(out.x, maxf(out.y, ground_y) + 0.3, out.z)
+	p.body.velocity = Vector3.ZERO
+
+
+func _process_vehicles(delta: float) -> void:
+	for v: ServerVehicle in vehicles.values():
+		if v.is_destroyed():
+			if now - v.destroyed_at >= float(vehicles_cfg["respawn_seconds"]) and v.occupants().is_empty():
+				v.reset()
+			continue
+		for pid: int in v.occupants():
+			var q: ServerPlayer = players.get(pid)
+			if q == null or not q.is_living():
+				if q != null:
+					_exit_vehicle(q)
+				else:
+					v.seats[v.seats.find(pid)] = -1
+		var inp: PlayerInput = null
+		var driver: ServerPlayer = players.get(v.driver())
+		if driver != null and _movement_allowed(driver):
+			inp = driver.last_input
+		var res := v.motor.step(v.body, v.state, inp, delta)
+		if float(res["crash"]) > 0.0:
+			_vehicle_damage(v, float(res["crash"]))
+		if v.body.global_position.y < -12.0:
+			_vehicle_damage(v, v.health)  # sank
+		for i in v.seats.size():
+			var q: ServerPlayer = players.get(v.seats[i])
+			if q != null:
+				q.body.global_position = v.seat_position(i) - Vector3(0, 0.6, 0)
+				q.body.velocity = v.body.velocity
+				q.yaw = q.last_input.yaw
+
+
+func _vehicle_damage(v: ServerVehicle, amount: float) -> void:
+	v.health -= amount
+	if v.health > 0.0:
+		return
+	v.health = 0.0
+	v.destroyed_at = now
+	v.state["speed"] = 0.0
+	var pos := v.body.global_position
+	for pid: int in v.occupants():
+		var q: ServerPlayer = players.get(pid)
+		if q != null:
+			_exit_vehicle(q)
+			_damage(q, float(vehicles_cfg["destroyed_occupant_damage"]), null, "vehicle", 0.0, pos, false)
+	_timeline("A %s was wrecked in %s" % [v.cfg["display_name"], map.district_name(map.district_at(pos))])
 
 
 ## Everyone boards a plane that crosses the island on a random line through
@@ -535,6 +666,12 @@ func _apply_input(p: ServerPlayer, inp: PlayerInput) -> void:
 		p.sprinting = inp.has(PlayerInput.SPRINT)
 		p.flashlight = inp.has(PlayerInput.FLASHLIGHT)
 	var before := p.feet()
+	var vehicle_pressed := inp.has(PlayerInput.VEHICLE)
+	if vehicle_pressed and not p.vehicle_button and allowed:
+		_toggle_vehicle(p)
+	p.vehicle_button = vehicle_pressed
+	if p.vehicle >= 0:
+		return  # the vehicle is driven from _process_vehicles with last_input
 	if p.air == PlayerMotor.Air.PLANE:
 		_plane_step(p, inp)
 		return
@@ -805,7 +942,7 @@ func find_inspection(p: ServerPlayer) -> Dictionary:
 func _process_interaction(p: ServerPlayer, delta: float) -> void:
 	_process_inspect(p, delta)
 	var holding := p.last_input.has(PlayerInput.INTERACT)
-	if not phases.is_playing() or not p.is_living() or p.air != PlayerMotor.Air.NONE:
+	if not phases.is_playing() or not p.is_living() or p.air != PlayerMotor.Air.NONE or p.vehicle >= 0:
 		p.interact_target = ""
 		p.interact_held = 0.0
 		p.set_meta("prompt", {})
@@ -1321,6 +1458,7 @@ func _back_to_lobby() -> void:
 	var spawns := map.spawn_points()
 	var i := 0
 	drop = {}
+	_reset_vehicles()
 	for p: ServerPlayer in players.values():
 		p.spectator = false
 		p.air = PlayerMotor.Air.NONE
@@ -1358,18 +1496,22 @@ func _send_snapshots() -> void:
 		flags |= 64 if q.healing_left > 0.0 else 0
 		flags |= 128 if not q.carrying.is_empty() else 0
 		flags |= [0, 256, 512, 1024][q.air]
+		flags |= 2048 if q.vehicle >= 0 else 0
 		var emote := q.emote if q.emote_until > now else ""
 		var entry := [q.id, q.feet(), q.yaw, q.pitch, int(q.vitals.state), w.id if w != null else "", flags, emote]
 		if q.vitals.state == Vitals.State.ELIMINATED:
 			bodies.append([q.id, q.feet(), q.yaw])
 		else:
 			others.append(entry)
+	var vehicle_view: Array = []
+	for v: ServerVehicle in vehicles.values():
+		vehicle_view.append(v.view())
 	var loot_view: Array = []
 	for l: Dictionary in loot:
 		if not l["taken"]:
 			loot_view.append([l["id"], l["item"], l["rarity"], l["pos"]])
 	for p: ServerPlayer in players.values():
-		send(p.id, Protocol.Msg.SNAPSHOT, {"tick": tick_count, "time": now, "ack": p.ack_seq, "players": others, "bodies": bodies, "loot": loot_view, "me": _me_block(p)}, false)
+		send(p.id, Protocol.Msg.SNAPSHOT, {"tick": tick_count, "time": now, "ack": p.ack_seq, "players": others, "bodies": bodies, "loot": loot_view, "vehicles": vehicle_view, "me": _me_block(p)}, false)
 
 
 func _me_block(p: ServerPlayer) -> Dictionary:
@@ -1385,7 +1527,7 @@ func _me_block(p: ServerPlayer) -> Dictionary:
 	return {
 		"id": p.id, "state": int(p.vitals.state), "spectator": p.spectator, "health": p.vitals.health, "shield": p.vitals.shield,
 		"bleed": p.vitals.bleed_left, "protect": p.vitals.protection_left, "stun": p.vitals.stun_left,
-		"pos": p.feet(), "vel": p.body.velocity, "crouch": p.crouching, "air": p.air,
+		"pos": p.feet(), "vel": p.body.velocity, "crouch": p.crouching, "air": p.air, "vehicle": p.vehicle, "seat": p.seat,
 		"inv": p.inventory.view(), "reloading": w != null and w.is_reloading(),
 		"healing": p.healing_left, "prompt": prompt_view, "inspect": inspect_view, "carrying": p.carrying,
 		"emergency_left": int(settings["emergency_meeting_uses_per_player"]) - p.emergency_uses,

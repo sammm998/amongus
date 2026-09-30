@@ -11,6 +11,7 @@ const RELOAD := 32
 const INTERACT := 64
 const FLASHLIGHT := 128
 const INSPECT := 256
+const VEHICLE := 512  # enter / leave a vehicle (edge-triggered on the server)
 
 var seq := 0
 var move := Vector2.ZERO   # x = right, y = forward, length <= 1

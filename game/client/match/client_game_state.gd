@@ -165,6 +165,39 @@ func sample_players(t: float) -> Dictionary:
 	return out
 
 
+## Vehicles at render time t: id -> [pos, yaw, pitch, type, driver, health, destroyed, speed].
+## The vehicle this client drives is extrapolated from the newest snapshot
+## instead (no interpolation delay for your own steering).
+func sample_vehicles(t: float, now: float, own_vehicle: int) -> Dictionary:
+	var out := {}
+	if snapshots.is_empty():
+		return out
+	var a: Dictionary = snapshots[0]
+	var b: Dictionary = snapshots[-1]
+	for i in range(snapshots.size() - 1):
+		if float(snapshots[i]["time"]) <= t and float(snapshots[i + 1]["time"]) >= t:
+			a = snapshots[i]
+			b = snapshots[i + 1]
+			break
+	if t > float(b["time"]):
+		a = b
+	var f := clampf((t - float(a["time"])) / maxf(0.0001, float(b["time"]) - float(a["time"])), 0.0, 1.0)
+	var prev := {}
+	for e: Array in a.get("vehicles", []):
+		prev[e[0]] = e
+	for e: Array in b.get("vehicles", []):
+		var pe: Array = prev.get(e[0], e)
+		out[e[0]] = [(pe[2] as Vector3).lerp(e[2], f), lerp_angle(pe[3], e[3], f), lerpf(pe[4], e[4], f), e[1], e[5], e[6], e[7], e[8]]
+	if own_vehicle >= 0:
+		var newest: Dictionary = snapshots[-1]
+		for e: Array in newest.get("vehicles", []):
+			if e[0] == own_vehicle:
+				var ahead := clampf(now - float(newest["time"]), 0.0, 0.25)
+				var dir := VehicleMotor.forward(e[3], e[4])
+				out[e[0]] = [(e[2] as Vector3) + dir * float(e[8]) * ahead, e[3], e[4], e[1], e[5], e[6], e[7], e[8]]
+	return out
+
+
 func latest() -> Dictionary:
 	return snapshots[-1] if not snapshots.is_empty() else {}
 

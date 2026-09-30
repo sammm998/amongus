@@ -132,20 +132,31 @@ static func build_collision(field: HeightField, center: Vector2, size: int) -> C
 	return col
 
 
-## Collision straight from a baked grid: cells of `grid.cell` metres, achieved
-## with a uniform scale (heights are divided by the cell size to compensate).
-static func build_grid_collision(grid: HeightGrid) -> CollisionShape3D:
-	var shape := HeightMapShape3D.new()
-	shape.map_width = grid.width
-	shape.map_depth = grid.depth
-	var data := PackedFloat32Array()
-	data.resize(grid.heights.size())
-	for i in data.size():
-		data[i] = grid.heights[i] / grid.cell
-	shape.map_data = data
-	var col := CollisionShape3D.new()
-	col.shape = shape
-	col.scale = Vector3.ONE * grid.cell
-	var half := Vector2(grid.width - 1, grid.depth - 1) * grid.cell * 0.5
-	col.position = Vector3(grid.origin.x + half.x, 0.0, grid.origin.y + half.y)
-	return col
+## Collision straight from a baked grid, as tiles of `tile_cells` cells (one
+## huge height map makes physics queries slow far from its centre). Cells are
+## `grid.cell` metres via a uniform scale (heights divided by the cell size).
+static func build_grid_collision(grid: HeightGrid, tile_cells: int = 64) -> Array[CollisionShape3D]:
+	var out: Array[CollisionShape3D] = []
+	var tz := 0
+	while tz < grid.depth - 1:
+		var tx := 0
+		var d := mini(tile_cells, grid.depth - 1 - tz)
+		while tx < grid.width - 1:
+			var w := mini(tile_cells, grid.width - 1 - tx)
+			var shape := HeightMapShape3D.new()
+			shape.map_width = w + 1
+			shape.map_depth = d + 1
+			var data := PackedFloat32Array()
+			data.resize((w + 1) * (d + 1))
+			for zi in d + 1:
+				for xi in w + 1:
+					data[zi * (w + 1) + xi] = grid.heights[(tz + zi) * grid.width + tx + xi] / grid.cell
+			shape.map_data = data
+			var col := CollisionShape3D.new()
+			col.shape = shape
+			col.scale = Vector3.ONE * grid.cell
+			col.position = Vector3(grid.origin.x + (tx + w * 0.5) * grid.cell, 0.0, grid.origin.y + (tz + d * 0.5) * grid.cell)
+			out.append(col)
+			tx += w
+		tz += d
+	return out

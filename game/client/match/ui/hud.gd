@@ -34,6 +34,7 @@ var _info_time := 0.0
 var _comms_button: Button
 var _look_hint: Label
 var _drop_hint: Label
+var _vehicle_hint: Label
 var _hud: Control
 var _objective: Label
 var _security_bar: ProgressBar
@@ -223,6 +224,13 @@ func _build_hud() -> void:
 	_drop_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_drop_hint.visible = false
 	_hud.add_child(_drop_hint)
+	_vehicle_hint = UIKit.label("", 22, Color.WHITE)
+	_vehicle_hint.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_vehicle_hint.position = Vector2(-420, -150)
+	_vehicle_hint.custom_minimum_size = Vector2(840, 0)
+	_vehicle_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_vehicle_hint.visible = false
+	_hud.add_child(_vehicle_hint)
 	_crosshair = Control.new()
 	_crosshair.set_anchors_preset(Control.PRESET_CENTER)
 	_crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -587,6 +595,13 @@ func _update_inspect(me: Dictionary) -> void:
 		_inspect_label.text = "[%s] %s" % [key, ins["label"]]
 		var hold := float(ins["hold"])
 		_inspect_bar.value = float(ins["progress"]) / hold * 100.0 if hold > 0.0 else 0.0
+
+
+func set_vehicle_hint(text: String) -> void:
+	if _vehicle_hint == null:
+		return
+	_vehicle_hint.text = text
+	_vehicle_hint.visible = not text.is_empty()
 
 
 func set_drop_hint(text: String) -> void:

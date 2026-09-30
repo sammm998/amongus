@@ -4,6 +4,9 @@ extends RefCounted
 ## created (dedicated/listen server world). Collision layer 1 = world.
 
 const WORLD_LAYER := 1
+## Extra layer on everything solid except the terrain: vehicles collide with
+## these and follow the ground through the (baked) height function instead.
+const STRUCTURE_LAYER := 16
 const DOOR_HEIGHT := 3.0
 const WALL := 0.4
 
@@ -24,15 +27,21 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	root.name = "MapWorld"
 	var statics := StaticBody3D.new()
 	statics.name = "WorldCollision"
-	statics.collision_layer = WORLD_LAYER
+	statics.collision_layer = WORLD_LAYER | STRUCTURE_LAYER
 	statics.collision_mask = 0
 	root.add_child(statics)
+	var terrain_body := StaticBody3D.new()
+	terrain_body.name = "TerrainCollision"
+	terrain_body.collision_layer = WORLD_LAYER
+	terrain_body.collision_mask = 0
+	root.add_child(terrain_body)
 	var col: Dictionary = map.raw["collision"]
 	var center := Vector2(float(col["center"][0]), float(col["center"][1]))
 	if map.grid != null:
-		statics.add_child(TerrainMeshBuilder.build_grid_collision(map.grid))
+		for tile: CollisionShape3D in TerrainMeshBuilder.build_grid_collision(map.grid):
+			terrain_body.add_child(tile)
 	else:
-		statics.add_child(TerrainMeshBuilder.build_collision(map.field, center, int(col["size"])))
+		terrain_body.add_child(TerrainMeshBuilder.build_collision(map.field, center, int(col["size"])))
 	_boundary(map, statics)
 	var district_lights := {}
 	var station_nodes := {}
@@ -283,7 +292,7 @@ static func _doors(map: MapData, b: Dictionary, root: Node3D, visuals: bool) -> 
 static func set_doors_locked(world_root: Node3D, building: String, locked: bool) -> void:
 	var doors: Dictionary = world_root.get_meta("doors", {})
 	for door: Dictionary in doors.get(building, []):
-		(door["body"] as StaticBody3D).collision_layer = WORLD_LAYER if locked else 0
+		(door["body"] as StaticBody3D).collision_layer = (WORLD_LAYER | STRUCTURE_LAYER) if locked else 0
 		if door["visual"] != null:
 			(door["visual"] as MeshInstance3D).visible = locked
 
