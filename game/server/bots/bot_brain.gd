@@ -47,6 +47,11 @@ var said_phase := ""
 var smooth_timer := 0.0
 var sidestep := 0.0
 var sidestep_dir := 1.0
+var likes_driving := true
+var vehicle_press_prev := false
+var resume_goal: Array = []      # [kind, pos, ref] to continue after boarding
+var drive_stuck := 0.0
+var drive_ready_at := 0.0
 
 
 func _init(match_server: MatchServer, player_id: int) -> void:
@@ -54,6 +59,7 @@ func _init(match_server: MatchServer, player_id: int) -> void:
 	id = player_id
 	cfg = GameData.table("bots")
 	rng.seed = player_id * 7919 + int(Time.get_ticks_usec() % 100000)
+	likes_driving = rng.randf() < float(cfg.get("drive_chance", 0.6))
 	var k: Array = cfg["traitor_kill_cooldown_seconds"]
 	kill_ready_at = rng.randf_range(float(k[0]), float(k[1]))
 
@@ -148,6 +154,9 @@ func think(dt: float) -> PlayerInput:
 	var visible := _visible_players()
 	var playing := phase == "ACTIVE" or phase == "RESUMING"
 
+	if int(me.get("vehicle", -1)) >= 0:
+		return _drive(inp, my_pos, dt)
+
 	# 1. Fight: react to being shot, or hunt as a traitor.
 	var fight := -1
 	if playing:
@@ -163,12 +172,21 @@ func think(dt: float) -> PlayerInput:
 	elif goal_kind.is_empty():
 		_set_goal("wander", _random_waypoint(), null)
 
+	# 2b. Long trips: take a buggy (drive it until close to the goal).
+	if playing and likes_driving and now >= drive_ready_at and resume_goal.is_empty() and goal_kind in ["task", "wander", "repair"]:
+		_maybe_take_vehicle(my_pos)
+
 	# 3. Move toward the goal, interact when there.
 	var dist := Vector2(goal_pos.x - my_pos.x, goal_pos.z - my_pos.z).length()
 	var arrive := 1.4 if goal_kind in ["task", "report", "repair", "loot"] else float(cfg["waypoint_reach_m"]) + 1.0
 	if dist <= arrive:
 		_face(goal_pos, dt, 6.0)
-		if goal_kind in ["task", "report", "repair", "loot"]:
+		if goal_kind == "vehicle":
+			_press_vehicle(inp)
+			linger -= dt
+			if linger <= -3.0:  # someone else took it
+				_resume()
+		elif goal_kind in ["task", "report", "repair", "loot"]:
 			var prompt: Dictionary = me.get("prompt", {})
 			if not prompt.is_empty():
 				inp.buttons |= PlayerInput.INTERACT
@@ -186,6 +204,69 @@ func think(dt: float) -> PlayerInput:
 	_pick_weapon(inp)
 	inp.yaw = yaw
 	inp.pitch = pitch
+	return inp
+
+
+## Walk to a free buggy near us when the goal is far away.
+func _maybe_take_vehicle(my_pos: Vector3) -> void:
+	var m := _m()
+	if my_pos.distance_to(goal_pos) < float(cfg.get("drive_min_trip_m", 160.0)):
+		return
+	for v: ServerVehicle in m.vehicles.values():
+		if v.cfg["kind"] == "car" and not v.is_destroyed() and v.driver() < 0 and v.body.global_position.distance_to(my_pos) < float(cfg.get("drive_fetch_range_m", 45.0)):
+			resume_goal = [goal_kind, goal_pos, goal_ref]
+			_set_goal("vehicle", v.body.global_position, v.id)
+			linger = 0.0
+			return
+
+
+func _resume() -> void:
+	if resume_goal.is_empty():
+		goal_kind = ""
+		return
+	_set_goal(resume_goal[0], resume_goal[1], resume_goal[2])
+	resume_goal = []
+
+
+## Edge-triggered vehicle button (press on alternate frames).
+func _press_vehicle(inp: PlayerInput) -> void:
+	if not vehicle_press_prev:
+		inp.buttons |= PlayerInput.VEHICLE
+	vehicle_press_prev = not vehicle_press_prev
+
+
+## Driving: steer along the planned path toward the goal, get out near it or
+## when stuck.
+func _drive(inp: PlayerInput, my_pos: Vector3, dt: float) -> PlayerInput:
+	var m := _m()
+	var v: ServerVehicle = m.vehicles.get(int(me["vehicle"]))
+	if goal_kind == "vehicle":
+		_resume()
+	if v == null or int(me.get("seat", 0)) != 0:
+		_press_vehicle(inp)
+		inp.yaw = yaw
+		return inp
+	var to_goal := Vector2(goal_pos.x - my_pos.x, goal_pos.z - my_pos.z).length()
+	var speed := absf(float(v.state["speed"]))
+	drive_stuck = drive_stuck + dt if speed < 1.5 else 0.0
+	if goal_kind.is_empty() or to_goal < float(cfg.get("drive_exit_range_m", 35.0)) or drive_stuck > 3.0:
+		drive_stuck = 0.0
+		drive_ready_at = m.now + 25.0
+		_press_vehicle(inp)
+		inp.yaw = yaw
+		return inp
+	vehicle_press_prev = false
+	# Aim at a path point well ahead (or the goal itself).
+	var target := goal_pos
+	while path_i < path.size() and Vector2(path[path_i].x - my_pos.x, path[path_i].z - my_pos.z).length() < 12.0:
+		path_i += 1
+	if path_i < path.size():
+		target = path[path_i]
+	var want := atan2(-(target.x - my_pos.x), -(target.z - my_pos.z))
+	var diff := wrapf(want - float(v.state["yaw"]), -PI, PI)
+	inp.move = Vector2(clampf(-diff * 1.8, -1.0, 1.0), 1.0 if absf(diff) < 1.0 else 0.45)
+	yaw = want
+	inp.yaw = yaw
 	return inp
 
 

@@ -47,5 +47,9 @@
   "engage_range_m": 28.0,
   "waypoint_reach_m": 1.6,
   "stuck_seconds": 2.5,
-  "retaliate_chance_per_tick": 0.08
+  "retaliate_chance_per_tick": 0.08,
+  "drive_chance": 0.6,
+  "drive_min_trip_m": 160.0,
+  "drive_fetch_range_m": 45.0,
+  "drive_exit_range_m": 35.0
 }
