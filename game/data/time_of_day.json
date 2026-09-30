@@ -1,5 +1,5 @@
 {
-  "default": "day",
+  "default": "sunset",
   "presets": {
     "day": {
       "sun_azimuth_degrees": 135.0,

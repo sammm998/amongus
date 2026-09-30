@@ -48,6 +48,7 @@ terrain = {
         {"x": -80, "z": 427, "rx": 50, "rz": 30},
         {"x": 420, "z": 330, "rx": 190, "rz": 130},
         {"x": -520, "z": -250, "rx": 200, "rz": 170},
+        {"x": 380, "z": -760, "rx": 200, "rz": 150},
     ],
     "hills": [
         {"x": -40, "z": -300, "radius": 170, "height": 28},
@@ -57,6 +58,7 @@ terrain = {
         {"x": 150, "z": 210, "radius": 110, "height": 9},
         {"x": 470, "z": -130, "radius": 120, "height": 16},
         {"x": -600, "z": 20, "radius": 80, "height": 11},
+        {"x": 380, "z": -760, "radius": 175, "height": 115, "shape": "cone", "crater": 0.14, "coastal": True},
     ],
     "flats": [],
 }
@@ -335,6 +337,29 @@ for name, (x, z) in list(W.items()):
 
 spawns = [dict(s) for s in S.spawns]
 
+# Sunset Cove set pieces.
+landmarks = [
+    {"kind": "hangar", "x": -425, "z": -300, "yaw": 0.0, "w": 22, "l": 26, "h": 4.5},
+    {"kind": "hangar", "x": -395, "z": -300, "yaw": 0.0, "w": 22, "l": 26, "h": 4.5},
+    {"kind": "hangar", "x": -365, "z": -300, "yaw": 0.0, "w": 22, "l": 26, "h": 4.5},
+    {"kind": "jet", "x": -515, "z": -210, "yaw": 1.3},
+    {"kind": "jet", "x": -525, "z": -275, "yaw": 1.5},
+    {"kind": "radio_tower", "x": -60, "z": -352, "h": 44},
+    {"kind": "pier", "x": 618, "z": 65, "y": -0.2, "yaw": math.pi / 2, "l": 36},
+    {"kind": "boat", "x": 660, "z": 74, "y": 0.05, "yaw": 0.3},
+    {"kind": "pier", "x": 40, "z": 438, "y": -0.2, "yaw": 0.0, "l": 40},
+    {"kind": "boat", "x": 47, "z": 482, "y": 0.05, "yaw": 1.8},
+    {"kind": "pier", "x": 395, "z": 445, "y": -0.2, "yaw": 0.2, "l": 30},
+    {"kind": "boat", "x": 408, "z": 480, "y": 0.05, "yaw": -0.4},
+    {"kind": "sea_stack", "x": 730, "z": -120, "y": -3, "size": 9, "h": 30},
+    {"kind": "sea_stack", "x": 700, "z": 260, "y": -3, "size": 7, "h": 22},
+    {"kind": "sea_stack", "x": -735, "z": 140, "y": -3, "size": 8, "h": 26},
+    {"kind": "sea_stack", "x": -600, "z": 430, "y": -3, "size": 6, "h": 18},
+    {"kind": "sea_stack", "x": 220, "z": 540, "y": -3, "size": 7, "h": 20},
+    {"kind": "sea_stack", "x": -320, "z": -480, "y": -3, "size": 9, "h": 28},
+    {"kind": "smoke", "x": 380, "z": -760, "y": 105, "scale": 9.0},
+]
+
 # Drivable vehicles: buggies in every district, prop planes on the airfield.
 HALF_PI = math.pi / 2
 vehicles = [
@@ -360,7 +385,7 @@ out = {
     "collision": {"center": [0, 0], "size": 1600},
     "boundary": {"x": 0, "z": 10, "rx": 730, "rz": 500, "segments": 72, "height": 30},
     "sun_direction": S.__dict__.get("sun_direction", [0.72, 0.075, -0.69]),
-    "vegetation": {"area": [-680, -460, 680, 470], "samples": 70000, "palms": 1400, "trees": 9000, "grass": 60000, "rocks": 1500},
+    "vegetation": {"area": [-680, -460, 680, 470], "samples": 70000, "palms": 2400, "trees": 6000, "grass": 60000, "rocks": 1500},
     "districts": districts, "buildings": buildings, "props": props, "stations": stations,
     "cameras": cameras, "spawns": spawns, "loot": loot, "roads": roads,
     "meeting_center": [0, -22], "medical_respawn": ["med_pod_1", "med_pod_2"],
@@ -370,6 +395,8 @@ out = {
     "medical_center_respawn": [-330, 74],
     "drop": {"from": [-760, -420], "to": [760, 440]},
     "vehicles": vehicles,
+    "landmarks": landmarks,
+    "far_terrain": [{"origin": [150, -980], "size": [460, 418], "res": 96}],
     "waypoints": W, "edges": E,
 }
 json.dump(out, open("game/data/maps/island.json", "w"), separators=(",", ":"))

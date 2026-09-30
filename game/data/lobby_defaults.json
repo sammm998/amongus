@@ -28,6 +28,6 @@
   "friendly_fire_multiplier": 1.0,
   "name_display_distance": 30.0,
   "cameras_enabled": true,
-  "time_of_day": "day",
+  "time_of_day": "sunset",
   "weather": "sunny"
 }

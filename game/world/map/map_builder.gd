@@ -46,6 +46,8 @@ static func build(map: MapData, visuals: bool) -> Node3D:
 	else:
 		terrain_body.add_child(TerrainMeshBuilder.build_collision(map.field, center, int(col["size"])))
 	_boundary(map, statics)
+	_tree_collision(map, root)
+	_landmarks(map, root, statics, visuals)
 	var district_lights := {}
 	var station_nodes := {}
 	var doors := {}
@@ -108,10 +110,75 @@ static func _terrain_visuals(map: MapData, root: Node3D) -> void:
 	if map.raw.has("sun_direction"):
 		var s: Array = map.raw["sun_direction"]
 		to_sun = Vector3(s[0], s[1], s[2])
+	# Distant backdrop terrain outside the playable grid (e.g. the volcano isle).
+	for ft: Dictionary in map.raw.get("far_terrain", []):
+		var fmi := MeshInstance3D.new()
+		fmi.name = "FarTerrain"
+		fmi.mesh = builder.build_mesh(map.field, Vector2(ft["origin"][0], ft["origin"][1]), Vector2(ft["size"][0], ft["size"][1]), int(ft["res"]))
+		fmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(fmi)
 	var sea := WaterFactory.sea(maxf(3000.0, rect.size.x * 2.5), to_sun, 128)
 	sea.name = "Sea"
 	root.add_child(sea)
 	WaterFactory.bake_depth(sea, map, rect, 1.0 if map.grid == null else 3.0)
+
+
+## Set pieces from the Sunset Cove look (map "landmarks"): arched hangars,
+## radio tower, piers, moored boats, parked jets, sea stacks, volcano smoke.
+static func _landmarks(map: MapData, root: Node3D, statics: StaticBody3D, visuals: bool) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	for l: Dictionary in map.raw.get("landmarks", []):
+		var x := float(l["x"])
+		var z := float(l["z"])
+		var pos := Vector3(x, float(l["y"]) if l.has("y") else map.height(x, z), z)
+		var xf := Transform3D(Basis(Vector3.UP, float(l.get("yaw", 0.0))), pos)
+		var node: Node3D = null
+		match str(l["kind"]):
+			"hangar":
+				var w := float(l.get("w", 22.0))
+				var len := float(l.get("l", 26.0))
+				var wall := float(l.get("h", 4.5))
+				_add_box_collider(statics, xf * Transform3D(Basis(), Vector3(0, (wall + w * 0.5) * 0.5, 0)), Vector3(w, wall + w * 0.5, len))
+				if visuals:
+					node = StructureBuilder.hangar(w, len, wall)
+			"radio_tower":
+				_add_box_collider(statics, xf * Transform3D(Basis(), Vector3(0, 5.0, 0)), Vector3(5.0, 10.0, 5.0))
+				if visuals:
+					node = StructureBuilder.radio_tower(float(l.get("h", 44.0)))
+			"pier":
+				var len := float(l.get("l", 34.0))
+				var w := float(l.get("w", 3.4))
+				_add_box_collider(statics, xf * Transform3D(Basis(), Vector3(0, 1.12, len * 0.5)), Vector3(w, 0.3, len))
+				if visuals:
+					node = StructureBuilder.pier(len, w)
+			"boat":
+				if visuals:
+					node = VehicleProps.boat()
+			"jet":
+				_add_box_collider(statics, xf * Transform3D(Basis(), Vector3(0, 1.2, 0)), Vector3(8.0, 2.4, 7.5))
+				if visuals:
+					node = VehicleProps.small_jet()
+			"sea_stack":
+				var sz := float(l.get("size", 8.0))
+				var hgt := float(l.get("h", 24.0))
+				var shape := CylinderShape3D.new()
+				shape.radius = sz * 0.8
+				shape.height = hgt + 20.0
+				var cs := CollisionShape3D.new()
+				cs.shape = shape
+				cs.position = pos + Vector3(0, hgt * 0.5 - 10.0, 0)
+				statics.add_child(cs)
+				if visuals:
+					var mi := MeshInstance3D.new()
+					mi.mesh = RockBuilder.rock(rng, Vector3(sz, hgt, sz), 0.7)
+					node = mi
+			"smoke":
+				if visuals:
+					node = SmokePlume.create(float(l.get("scale", 9.0)), Color(0.72, 0.62, 0.66, 0.7))
+		if node != null:
+			node.transform = xf
+			root.add_child(node)
 
 
 static func _boundary(map: MapData, statics: StaticBody3D) -> void:
@@ -468,31 +535,27 @@ static func _roads(map: MapData, root: Node3D, lights: Dictionary) -> void:
 	root.add_child(kit.to_instance())
 
 
-static func _vegetation(map: MapData, root: Node3D) -> void:
+## Deterministic vegetation placement: kind name -> Array of Transform3D.
+## Shared by the client (visuals) and the server (tree trunk collision).
+## Coastal band: palms, bushes and ferns (the Sunset Cove look); inland:
+## broadleaf jungle trees, conifers on high ground, grass and rocks.
+static var _layout_cache: Dictionary = {}
+
+
+static func vegetation_layout(map: MapData) -> Dictionary:
+	var cache_key: String = str(map.raw.get("id", "")) + str(map.raw.get("vegetation", {}).hash())
+	if _layout_cache.has(cache_key):
+		return _layout_cache[cache_key]
+	var out := {}
+	for k: String in ["palm0", "palm1", "palm2", "bush", "fern", "broad0", "broad1", "pine0", "pine1", "grass", "rock0", "rock1", "rock2"]:
+		out[k] = []
 	var rng := RandomNumberGenerator.new()
-	rng.seed = 99
-	var kinds: Array[Mesh] = []  # palm variants: [trunk, leaves] per variant, then bush, fern
-	var palm_parts := 0
-	for i in 3:
-		var palm := VegetationBuilder.palm(rng, 8.0 + i * 1.5)
-		for child in palm.get_children():
-			if child is MeshInstance3D:
-				kinds.append((child as MeshInstance3D).mesh)
-		if i == 0:
-			palm_parts = kinds.size()
-		palm.free()
-	kinds.append(VegetationBuilder.bush(rng, 1.8))
-	kinds.append(VegetationBuilder.fern(rng, 1.2))
-	var bush_kind := kinds.size() - 2
-	var fern_kind := kinds.size() - 1
-	var xforms: Array = []
-	for k in kinds.size():
-		xforms.append([])
+	rng.seed = 4242
 	var blockers := _blockers(map)
-	var palm_count := 0
 	var veg: Dictionary = map.raw.get("vegetation", {})
 	var area: Array = veg.get("area", [-200.0, -150.0, 200.0, 140.0])
 	var max_palms := int(veg.get("palms", 260))
+	var palm_count := 0
 	for i in int(veg.get("samples", 7000)):
 		var x := rng.randf_range(float(area[0]), float(area[2]))
 		var z := rng.randf_range(float(area[1]), float(area[3]))
@@ -502,83 +565,120 @@ static func _vegetation(map: MapData, root: Node3D) -> void:
 		var r := rng.randf()
 		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.7, 1.5)), Vector3(x, h - 0.1, z))
 		var inland := map.coast_distance(x, z) - map.beach_width
-		if r < 0.05 and palm_count < max_palms:
-			var variant := palm_count % 3
+		var coastal := inland < 70.0
+		# Palms crowd the coast and thin out inland.
+		if r < (0.07 if coastal else 0.02) and palm_count < max_palms:
 			var pxf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.85, 1.2)), Vector3(x, h - 0.2, z))
-			for part in palm_parts:
-				xforms[variant * palm_parts + part].append(pxf)
+			out["palm%d" % (palm_count % 3)].append(pxf)
 			palm_count += 1
 		elif inland > 2.0 and r < 0.45:
-			xforms[bush_kind].append(xf)
+			out["bush"].append(xf)
 		elif inland > 2.0 and r < 0.65:
-			xforms[fern_kind].append(xf)
-	# Inland forests (broadleaf + conifers higher up), grass tufts and rocks.
-	var first_extra := kinds.size()
-	for i in 2:
-		kinds.append(VegetationBuilder.broadleaf(rng, 6.5 + i * 2.0))
-	for i in 2:
-		kinds.append(VegetationBuilder.pine(rng, 9.0 + i * 3.0))
-	var grass_kind := kinds.size()
-	kinds.append(VegetationBuilder.grass_tuft(rng))
-	var rock_kind := kinds.size()
-	for i in 3:
-		kinds.append(RockBuilder.rock(rng, Vector3(1.0, 0.6, 0.8) * (0.8 + i * 0.5), 0.5))
-	while xforms.size() < kinds.size():
-		xforms.append([])
+			out["fern"].append(xf)
 	for i in int(veg.get("trees", 0)):
 		var x := rng.randf_range(float(area[0]), float(area[2]))
 		var z := rng.randf_range(float(area[1]), float(area[3]))
 		var inland := map.coast_distance(x, z) - map.beach_width
-		if inland < 25.0 or _blocked(blockers, x, z):
+		if inland < 45.0 or _blocked(blockers, x, z):
 			continue
 		var h := map.height(x, z)
-		var n := map.normal(x, z)
-		if n.y < 0.8:
+		if map.normal(x, z).y < 0.8:
 			continue
-		var pine := h > 14.0 or rng.randf() < 0.3
-		var k := first_extra + (2 if pine else 0) + rng.randi_range(0, 1)
-		xforms[k].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.3)), Vector3(x, h - 0.15, z)))
+		var kind := ("pine%d" if h > 16.0 else "broad%d") % rng.randi_range(0, 1)
+		out[kind].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.3)), Vector3(x, h - 0.15, z)))
 	for i in int(veg.get("grass", 0)):
 		var x := rng.randf_range(float(area[0]), float(area[2]))
 		var z := rng.randf_range(float(area[1]), float(area[3]))
 		if map.coast_distance(x, z) - map.beach_width < 4.0 or _blocked(blockers, x, z):
 			continue
-		xforms[grass_kind].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.6)), Vector3(x, map.height(x, z) - 0.05, z)))
+		out["grass"].append(Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.8, 1.6)), Vector3(x, map.height(x, z) - 0.05, z)))
 	for i in int(veg.get("rocks", 0)):
 		var x := rng.randf_range(float(area[0]), float(area[2]))
 		var z := rng.randf_range(float(area[1]), float(area[3]))
 		if map.height(x, z) < 0.3 or _blocked(blockers, x, z):
 			continue
 		var basis := Basis.from_euler(Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))).scaled(Vector3.ONE * rng.randf_range(0.6, 1.6))
-		xforms[rock_kind + rng.randi_range(0, 2)].append(Transform3D(basis, Vector3(x, map.height(x, z) - 0.2, z)))
+		out["rock%d" % rng.randi_range(0, 2)].append(Transform3D(basis, Vector3(x, map.height(x, z) - 0.2, z)))
+	_layout_cache[cache_key] = out
+	return out
 
-	# One MultiMesh per kind per 128 m cell: off-screen cells are culled and
+
+const TREE_KINDS := {"palm0": 0.26, "palm1": 0.26, "palm2": 0.26, "broad0": 0.3, "broad1": 0.3, "pine0": 0.3, "pine1": 0.3}
+
+
+## Trunk colliders (server and client), one StaticBody per 128 m cell.
+static func _tree_collision(map: MapData, root: Node3D) -> void:
+	var layout := vegetation_layout(map)
+	var bodies := {}
+	for kind: String in TREE_KINDS:
+		for xf: Transform3D in layout[kind]:
+			# Small bodies: a body's shapes are tested together once its AABB is hit.
+			var key := Vector2i(floori(xf.origin.x / 24.0), floori(xf.origin.z / 24.0))
+			if not bodies.has(key):
+				var body := StaticBody3D.new()
+				body.name = "Trees_%d_%d" % [key.x, key.y]
+				body.collision_layer = WORLD_LAYER | STRUCTURE_LAYER
+				body.collision_mask = 0
+				root.add_child(body)
+				bodies[key] = body
+			var s := xf.basis.get_scale().x
+			var shape := CylinderShape3D.new()
+			shape.radius = float(TREE_KINDS[kind]) * s
+			shape.height = 4.0 * s
+			var cs := CollisionShape3D.new()
+			cs.shape = shape
+			cs.position = xf.origin + Vector3(0, shape.height * 0.5, 0)
+			(bodies[key] as StaticBody3D).add_child(cs)
+
+
+static func _vegetation(map: MapData, root: Node3D) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 99
+	var meshes := {}
+	for i in 3:
+		var palm := VegetationBuilder.palm(rng, 8.0 + i * 1.5)
+		var parts: Array = []
+		for child in palm.get_children():
+			if child is MeshInstance3D:
+				parts.append((child as MeshInstance3D).mesh)
+		meshes["palm%d" % i] = parts
+		palm.free()
+	meshes["bush"] = [VegetationBuilder.bush(rng, 1.8)]
+	meshes["fern"] = [VegetationBuilder.fern(rng, 1.2)]
+	for i in 2:
+		meshes["broad%d" % i] = [VegetationBuilder.broadleaf(rng, 6.5 + i * 2.0)]
+		meshes["pine%d" % i] = [VegetationBuilder.pine(rng, 9.0 + i * 3.0)]
+	meshes["grass"] = [VegetationBuilder.grass_tuft(rng)]
+	for i in 3:
+		meshes["rock%d" % i] = [RockBuilder.rock(rng, Vector3(1.0, 0.6, 0.8) * (0.8 + i * 0.5), 0.5)]
+	var layout := vegetation_layout(map)
+	# One MultiMesh per mesh per 128 m cell: off-screen cells are culled and
 	# visibility ranges work per cell (a single island-wide MultiMesh has one AABB).
-	for k in kinds.size():
+	for kind: String in layout:
 		var cells := {}
-		for xf: Transform3D in xforms[k]:
+		for xf: Transform3D in layout[kind]:
 			var key := Vector2i(floori(xf.origin.x / VEG_CELL), floori(xf.origin.z / VEG_CELL))
 			if not cells.has(key):
 				cells[key] = []
 			cells[key].append(xf)
-		for key: Vector2i in cells:
-			var list: Array = cells[key]
-			var mm := MultiMesh.new()
-			mm.transform_format = MultiMesh.TRANSFORM_3D
-			mm.mesh = kinds[k]
-			mm.instance_count = list.size()
-			for i in list.size():
-				mm.set_instance_transform(i, list[i])
-			var mmi := MultiMeshInstance3D.new()
-			mmi.multimesh = mm
-			# Trees stay visible far (landmarks); ground cover fades early.
-			var tree := k < bush_kind or (k >= first_extra and k < grass_kind)
-			mmi.visibility_range_end = 420.0 if tree else (60.0 if k == grass_kind else 140.0)
-			mmi.visibility_range_end_margin = 20.0
-			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED
-			if not tree and k < rock_kind:
-				mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			root.add_child(mmi)
+		var tree := TREE_KINDS.has(kind)
+		for mesh: Mesh in meshes[kind]:
+			for key: Vector2i in cells:
+				var list: Array = cells[key]
+				var mm := MultiMesh.new()
+				mm.transform_format = MultiMesh.TRANSFORM_3D
+				mm.mesh = mesh
+				mm.instance_count = list.size()
+				for i in list.size():
+					mm.set_instance_transform(i, list[i])
+				var mmi := MultiMeshInstance3D.new()
+				mmi.multimesh = mm
+				# Trees stay visible far (landmarks); ground cover fades early.
+				mmi.visibility_range_end = 420.0 if tree else (60.0 if kind == "grass" else 140.0)
+				mmi.visibility_range_end_margin = 20.0
+				if not tree and not kind.begins_with("rock"):
+					mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				root.add_child(mmi)
 
 
 const VEG_CELL := 128.0
@@ -604,10 +704,8 @@ static func _blockers(map: MapData) -> Array:
 				var p := a.lerp(b, float(k) / n)
 				out.append([p.x, p.y, 5.0])
 	for name: String in map.waypoints:
-		if name.begins_with("g_"):
-			continue  # open-ground walking grid: vegetation may grow there
 		var p: Vector3 = map.waypoints[name]
-		out.append([p.x, p.z, 2.5])
+		out.append([p.x, p.z, 2.0 if name.begins_with("g_") else 2.5])
 	# Spatial hash (BLOCK_CELL buckets) so big maps stay fast to populate.
 	var hash := {}
 	for c: Array in out:

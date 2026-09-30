@@ -46,6 +46,6 @@ func reset() -> void:
 	destroyed_at = -1.0
 
 
-## Public snapshot entry: [id, type, pos, yaw, pitch, driver, health 0..1, destroyed, speed].
+## Public snapshot entry: [id, type, pos, yaw, pitch, driver, health 0..1, destroyed, speed, airborne].
 func view() -> Array:
-	return [id, type_id, body.global_position, float(state["yaw"]), float(state["pitch"]), driver(), health / float(cfg["health"]), is_destroyed(), float(state["speed"])]
+	return [id, type_id, body.global_position, float(state["yaw"]), float(state["pitch"]), driver(), health / float(cfg["health"]), is_destroyed(), float(state["speed"]), bool(state["airborne"])]

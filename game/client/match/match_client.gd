@@ -108,11 +108,76 @@ func _physics_process(delta: float) -> void:
 	var inp := local.build_input(delta)
 	inp.view_time = game.server_now(NetworkManager.local_time()) - INTERP_DELAY
 	local.simulate(inp, not can_move)
+	_predict_vehicle(inp if can_move else null, delta)
 	NetworkManager.client.send_game(Protocol.Msg.INPUT, inp.to_payload(), false)
+
+
+# ------------------------------------------------- own vehicle prediction ---
+
+var _pred := {}  # {id, body, motor, state} while this client drives a vehicle
+
+
+## The driver's vehicle runs the shared VehicleMotor locally with the same
+## inputs the server gets, so steering responds instantly; snapshots nudge it
+## back toward the server (snap on large errors).
+func _predict_vehicle(inp: PlayerInput, delta: float) -> void:
+	var mine := int(game.me.get("vehicle", -1))
+	if mine < 0 or int(game.me.get("seat", -1)) != 0:
+		_drop_prediction()
+		return
+	if _pred.is_empty() or _pred["id"] != mine:
+		_drop_prediction()
+		var e := _vehicle_entry(mine)
+		if e.is_empty():
+			return
+		var cfg: Dictionary = GameData.table("vehicles")["types"][e[1]]
+		var body := VehicleMotor.make_body(cfg)
+		add_child(body)
+		body.global_position = e[2]
+		_pred = {"id": mine, "body": body, "motor": VehicleMotor.new(cfg, map.height),
+			"state": {"yaw": e[3], "pitch": e[4], "speed": e[8], "airborne": e[9], "vy": 0.0}}
+	_pred["motor"].step(_pred["body"], _pred["state"], inp, delta)
+
+
+func _drop_prediction() -> void:
+	if not _pred.is_empty():
+		(_pred["body"] as Node).queue_free()
+		_pred = {}
+
+
+func _vehicle_entry(id: int) -> Array:
+	for e: Array in game.latest().get("vehicles", []):
+		if e[0] == id:
+			return e
+	return []
+
+
+func _correct_prediction() -> void:
+	if _pred.is_empty():
+		return
+	var e := _vehicle_entry(_pred["id"])
+	if e.is_empty():
+		return
+	var body: CharacterBody3D = _pred["body"]
+	var state: Dictionary = _pred["state"]
+	var lead := clampf(float(NetworkManager.client.rtt_ms) * 0.0005, 0.0, 0.2)  # one-way latency
+	var target: Vector3 = e[2] + VehicleMotor.forward(e[3], e[4]) * float(e[8]) * lead
+	var err := body.global_position.distance_to(target)
+	if err > maxf(4.0, absf(float(e[8])) * 0.35) or bool(e[7]):
+		body.global_position = e[2]
+		state["yaw"] = e[3]
+		state["pitch"] = e[4]
+		state["speed"] = e[8]
+	else:
+		body.global_position = body.global_position.lerp(target, 0.12)
+		state["yaw"] = lerp_angle(float(state["yaw"]), float(e[3]), 0.12)
+		state["speed"] = lerpf(float(state["speed"]), float(e[8]), 0.2)
+	state["airborne"] = e[9]
 
 
 func _on_snapshot(p: Dictionary) -> void:
 	var me: Dictionary = p["me"]
+	_correct_prediction()
 	if not me.has("pos"):
 		return
 	var server_pos: Vector3 = me["pos"]
@@ -157,6 +222,12 @@ func _update_vehicles(delta: float) -> void:
 			view = VehicleProps.prop_plane(Color(0.93, 0.93, 0.9), paint) if tcfg["kind"] == "plane" else VehicleProps.buggy(paint)
 			add_child(view)
 			_vehicle_views[id] = view
+		if id == mine and not _pred.is_empty() and _pred["id"] == id:
+			s = s.duplicate()
+			s[0] = (_pred["body"] as Node3D).global_position
+			s[1] = float(_pred["state"]["yaw"])
+			s[2] = float(_pred["state"]["pitch"])
+			s[7] = float(_pred["state"]["speed"])
 		var pos: Vector3 = s[0]
 		var yaw: float = s[1]
 		var basis := Basis(Vector3.UP, yaw)

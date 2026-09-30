@@ -82,6 +82,12 @@ Rules: 3 gun shots per match, knife (slot 4) — backstab downs, frontal stab is
 Perf: terrain collision tiled (one huge height map was ~100x slower far from the centre), vegetation
 chunked, lamps only at night, web render preset, minimap clipped.
 
+Sunset Cove pass: sunset is the default time of day; landmarks (arched hangars, radio tower, piers
+with moored boats, parked jets, sea stacks, smoking volcano isle as far backdrop); palms crowd the coasts,
+broadleaf jungle inland. Tree trunks now collide (deterministic `MapBuilder.vegetation_layout`, shared by
+server and client). Own vehicle is predicted client-side with the shared VehicleMotor and nudged toward
+snapshots (snap on large errors).
+
 Next: vehicles polish — the island is now big enough that they matter; minimap zoom; drop path on the full map.
 
 ## Decisions
